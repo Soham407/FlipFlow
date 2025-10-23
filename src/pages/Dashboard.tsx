@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Upload, FileText, Eye, Trash2, LogOut } from "lucide-react";
+import { Loader2, Upload, FileText, Eye, Trash2, LogOut, Plus } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 
 interface Flipbook {
@@ -23,6 +24,7 @@ const Dashboard = () => {
   const [uploading, setUploading] = useState(false);
   const [flipbooks, setFlipbooks] = useState<Flipbook[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -89,6 +91,7 @@ const Dashboard = () => {
       toast.success("Flipbook uploaded successfully!");
       setTitle("");
       setFile(null);
+      setIsModalOpen(false);
       fetchFlipbooks();
     } catch (error: any) {
       toast.error(error.message || "Failed to upload flipbook");
@@ -142,49 +145,58 @@ const Dashboard = () => {
             </h1>
             <p className="text-muted-foreground mt-1">Manage your flipbooks</p>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex gap-2">
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create New Flipbook
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Upload New Flipbook</DialogTitle>
+                  <DialogDescription>Upload a PDF file to create a new flipbook</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleUpload}>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Title</Label>
+                      <Input
+                        id="title"
+                        placeholder="My Awesome Flipbook"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="file">PDF File</Label>
+                      <Input
+                        id="file"
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => setFile(e.target.files?.[0] || null)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter className="mt-6">
+                    <Button type="submit" disabled={uploading} className="w-full">
+                      {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Flipbook
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
-
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Upload New Flipbook</CardTitle>
-            <CardDescription>Upload a PDF file to create a new flipbook</CardDescription>
-          </CardHeader>
-          <form onSubmit={handleUpload}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  placeholder="My Awesome Flipbook"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="file">PDF File</Label>
-                <Input
-                  id="file"
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  required
-                />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button type="submit" disabled={uploading} className="w-full">
-                {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Flipbook
-              </Button>
-            </CardFooter>
-          </form>
-        </Card>
 
         <div className="space-y-4">
           <h2 className="text-2xl font-semibold">Your Flipbooks</h2>
