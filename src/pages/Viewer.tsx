@@ -97,18 +97,35 @@ const Viewer = () => {
 
   // Initialize flipbook when load.js and publicUrl are ready
   useEffect(() => {
-    if (loadLoaded && publicUrl) {
-      // Use a minimal timeout to ensure the DOM is ready
+    // Check if all necessary functions and data are available
+    if (loadLoaded && publicUrl && flipbook && (window as any).loadFlipbook && (window as any).getLastPage) {
+      
+      // Use a minimal timeout to ensure the DOM is fully ready after this render
       setTimeout(() => {
-        if ((window as any).loadFlipbook) {
-          console.log('✅ loadFlipbook function is ready. Initializing...');
-          (window as any).loadFlipbook(publicUrl);
+        console.log('✅ loadFlipbook and dependencies are ready. Initializing...');
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const pageFromUrl = parseInt(urlParams.get('page') || 'NaN', 10);
+        
+        // Use the flipbook ID for persistence, fall back to URL
+        const pdfId = flipbook.id || publicUrl; 
+
+        if (!isNaN(pageFromUrl)) {
+            // If page is in URL params, use that
+            (window as any).loadFlipbook(publicUrl, false, pageFromUrl, pdfId);
         } else {
-          console.error('❌ Critical error: loadFlipbook function is not available.');
+            // If no page in URL, try to get from IndexedDB (pageMemory.js)
+            (window as any).getLastPage(pdfId).then(function(storedPage: number) {
+                (window as any).loadFlipbook(publicUrl, false, storedPage || 1, pdfId);
+            });
         }
       }, 0);
+
+    } else if (loadLoaded && publicUrl && flipbook) {
+      // This else-if helps debug if functions are missing
+      console.error('❌ Critical error: loadFlipbook or getLastPage function is not available on window.');
     }
-  }, [loadLoaded, publicUrl]);
+  }, [loadLoaded, publicUrl, flipbook]); // Add flipbook as a dependency
 
   // Show loading state while scripts are loading or data is fetching
   if (loading || !jqueryLoaded || !pageMemoryLoaded || !dflipLoaded || !loadLoaded || !flipbook || !publicUrl) {
