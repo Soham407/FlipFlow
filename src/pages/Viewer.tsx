@@ -2,9 +2,18 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useScript } from "@/hooks/useScript";
+
+// TypeScript declarations for jQuery and dflip
+declare global {
+  interface Window {
+    $: any;
+    jQuery: any;
+  }
+}
 
 interface Flipbook {
   id: string;
@@ -16,7 +25,33 @@ const Viewer = () => {
   const { id } = useParams();
   const [flipbook, setFlipbook] = useState<Flipbook | null>(null);
   const [loading, setLoading] = useState(true);
+  const [publicUrl, setPublicUrl] = useState<string | null>(null);
 
+  // Load jQuery first
+  const { loaded: jqueryLoaded, error: jqueryError } = useScript({
+    src: '/lib/js/libs/jquery.min.js',
+    enabled: true
+  });
+
+  // Load pageMemory.js only after jQuery is loaded
+  const { loaded: pageMemoryLoaded, error: pageMemoryError } = useScript({
+    src: '/lib/js/pageMemory.js',
+    enabled: jqueryLoaded
+  });
+
+  // Load dflip.js only after pageMemory is loaded
+  const { loaded: dflipLoaded, error: dflipError } = useScript({
+    src: '/lib/js/dflip.js',
+    enabled: pageMemoryLoaded
+  });
+
+  // Load load.js only after dflip is loaded
+  const { loaded: loadLoaded, error: loadError } = useScript({
+    src: '/lib/js/load.js',
+    enabled: dflipLoaded
+  });
+
+  // Fetch flipbook data from Supabase
   useEffect(() => {
     const fetchFlipbook = async () => {
       try {
@@ -40,10 +75,76 @@ const Viewer = () => {
     }
   }, [id]);
 
-  if (loading) {
+  // Get public URL from Supabase storage when flipbook data is available
+  useEffect(() => {
+    const getPublicUrl = async () => {
+      if (flipbook?.file_path) {
+        try {
+          const { data } = supabase.storage
+            .from('user_pdfs')
+            .getPublicUrl(flipbook.file_path);
+          
+          setPublicUrl(data.publicUrl);
+        } catch (error) {
+          console.error('Error getting public URL:', error);
+          toast.error("Failed to load PDF file");
+        }
+      }
+    };
+
+    getPublicUrl();
+  }, [flipbook]);
+
+  // Initialize flipbook when load.js and publicUrl are ready
+  useEffect(() => {
+    if (loadLoaded && publicUrl) {
+      // Use a minimal timeout to ensure the DOM is ready
+      setTimeout(() => {
+        if ((window as any).loadFlipbook) {
+          console.log('✅ loadFlipbook function is ready. Initializing...');
+          (window as any).loadFlipbook(publicUrl);
+        } else {
+          console.error('❌ Critical error: loadFlipbook function is not available.');
+        }
+      }, 0);
+    }
+  }, [loadLoaded, publicUrl]);
+
+  // Show loading state while scripts are loading or data is fetching
+  if (loading || !jqueryLoaded || !pageMemoryLoaded || !dflipLoaded || !loadLoaded || !flipbook || !publicUrl) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">
+            {loading ? 'Loading flipbook...' : 
+             !jqueryLoaded ? 'Loading jQuery...' :
+             !pageMemoryLoaded ? 'Loading page memory...' :
+             !dflipLoaded ? 'Loading PDF viewer...' :
+             !loadLoaded ? 'Loading flipbook loader...' :
+             !flipbook ? 'Loading flipbook data...' :
+             'Preparing PDF...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error states
+  if (jqueryError || pageMemoryError || dflipError || loadError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
+        <Card>
+          <CardContent className="py-8 text-center">
+            <p className="text-muted-foreground">Failed to load PDF viewer</p>
+            <Button asChild className="mt-4">
+              <Link to="/dashboard">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Dashboard
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -76,18 +177,7 @@ const Viewer = () => {
           </Link>
         </Button>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-3xl">{flipbook.title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border-2 border-dashed border-muted p-12 text-center">
-              <p className="text-muted-foreground">
-                PDF viewer will be implemented here. File: {flipbook.file_path}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <div id="flipbookContainer" className="h-screen w-full"></div>
       </div>
     </div>
   );
