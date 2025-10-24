@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Upload, FileText, Eye, Trash2, LogOut, Plus } from "lucide-react";
+import { Loader2, Upload, FileText, Eye, Trash2, LogOut, Plus, Crown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import type { Session } from "@supabase/supabase-js";
 
 interface Flipbook {
@@ -25,6 +26,8 @@ const Dashboard = () => {
   const [flipbooks, setFlipbooks] = useState<Flipbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [userRole, setUserRole] = useState<'free' | 'pro'>('free');
+  const [processingPayment, setProcessingPayment] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,8 +51,26 @@ const Dashboard = () => {
   useEffect(() => {
     if (session) {
       fetchFlipbooks();
+      fetchUserRole();
     }
   }, [session]);
+
+  const fetchUserRole = async () => {
+    try {
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (roleData) {
+        setUserRole(roleData.role);
+      }
+    } catch (error) {
+      console.error('Error loading user role:', error);
+    }
+  };
 
   const fetchFlipbooks = async () => {
     try {
@@ -71,6 +92,20 @@ const Dashboard = () => {
     e.preventDefault();
     if (!file || !session) return;
 
+    // Check flipbook limit
+    const maxFlipbooks = userRole === 'pro' ? Infinity : 3;
+    if (flipbooks.length >= maxFlipbooks) {
+      toast.error(`Free users can only create ${maxFlipbooks} flipbooks. Upgrade to Pro for unlimited flipbooks!`);
+      return;
+    }
+
+    // Check file size
+    const maxFileSize = userRole === 'pro' ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB pro, 10MB free
+    if (file.size > maxFileSize) {
+      toast.error(`Maximum file size is ${userRole === 'pro' ? '50MB' : '10MB'}. ${userRole === 'free' ? 'Upgrade to Pro for 50MB limit!' : ''}`);
+      return;
+    }
+
     setUploading(true);
     try {
       const fileExt = file.name.split(".").pop();
@@ -84,7 +119,7 @@ const Dashboard = () => {
 
       const { error: dbError } = await supabase
         .from("flipbooks")
-        .insert([{ title, file_path: fileName, user_id: session.user.id }]);
+        .insert([{ title, file_path: fileName, user_id: session.user.id, file_size: file.size }]);
 
       if (dbError) throw dbError;
 
@@ -93,6 +128,7 @@ const Dashboard = () => {
       setFile(null);
       setIsModalOpen(false);
       fetchFlipbooks();
+      fetchUserRole();
     } catch (error: any) {
       toast.error(error.message || "Failed to upload flipbook");
     } finally {
@@ -122,6 +158,76 @@ const Dashboard = () => {
     }
   };
 
+  const initializeRazorpay = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleUpgradeToPro = async () => {
+    setProcessingPayment(true);
+    try {
+      const res = await initializeRazorpay();
+      if (!res) {
+        toast.error("Failed to load payment gateway");
+        return;
+      }
+
+      const { data: orderData, error: orderError } = await supabase.functions.invoke(
+        'create-razorpay-order'
+      );
+
+      if (orderError) throw orderError;
+
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "FlipFlow",
+        description: "Pro Subscription - ₹100/year",
+        order_id: orderData.orderId,
+        handler: async (response: any) => {
+          try {
+            const { error: verifyError } = await supabase.functions.invoke(
+              'verify-razorpay-payment',
+              {
+                body: {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                },
+              }
+            );
+
+            if (verifyError) throw verifyError;
+
+            toast.success("Welcome to FlipFlow Pro! 🎉");
+            fetchUserRole();
+          } catch (error: any) {
+            toast.error(error.message || "Payment verification failed");
+          }
+        },
+        prefill: {
+          email: session?.user?.email || "",
+        },
+        theme: {
+          color: "#3b82f6",
+        },
+      };
+
+      const paymentObject = new (window as any).Razorpay(options);
+      paymentObject.open();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to initiate payment");
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
@@ -143,9 +249,27 @@ const Dashboard = () => {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               FlipFlow
             </h1>
-            <p className="text-muted-foreground mt-1">Manage your flipbooks</p>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant={userRole === 'pro' ? 'default' : 'secondary'} className="gap-1">
+                {userRole === 'pro' && <Crown className="h-3 w-3" />}
+                {userRole === 'pro' ? 'Pro' : 'Free'} Plan
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                {userRole === 'free' ? `${flipbooks.length}/3 flipbooks` : 'Unlimited flipbooks'}
+              </span>
+            </div>
           </div>
           <div className="flex gap-2">
+            {userRole === 'free' && (
+              <Button onClick={handleUpgradeToPro} disabled={processingPayment} className="gap-2">
+                {processingPayment ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Crown className="h-4 w-4" />
+                )}
+                Upgrade to Pro - ₹100/year
+              </Button>
+            )}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
               <DialogTrigger asChild>
                 <Button>
