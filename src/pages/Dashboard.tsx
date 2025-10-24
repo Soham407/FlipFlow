@@ -57,18 +57,35 @@ const Dashboard = () => {
 
   const fetchUserRole = async () => {
     try {
-      const { data: roleData } = await supabase
+      const { data: roleData, error } = await supabase
         .from('user_roles')
         .select('role')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
+      if (error) {
+        console.error('Error loading user role:', error);
+        setUserRole('free'); // Default to free on error
+        return;
+      }
+
       if (roleData) {
         setUserRole(roleData.role);
+      } else {
+        // No role found, create a default free role
+        const { error: insertError } = await supabase
+          .from('user_roles')
+          .insert([{ user_id: session?.user?.id, role: 'free' }]);
+        
+        if (insertError) {
+          console.error('Error creating user role:', insertError);
+        }
+        setUserRole('free');
       }
     } catch (error) {
       console.error('Error loading user role:', error);
+      setUserRole('free');
     }
   };
 
