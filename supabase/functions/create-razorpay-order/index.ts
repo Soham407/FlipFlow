@@ -37,10 +37,13 @@ serve(async (req) => {
 
     // Create Razorpay order
     const amount = 10000; // 100 INR in paise
+    // Receipt must be max 40 chars - use shortened user ID + timestamp
+    const shortId = user.id.slice(0, 8);
+    const timestamp = Date.now().toString().slice(-8);
     const orderData = {
       amount: amount,
       currency: 'INR',
-      receipt: `receipt_${user.id}_${Date.now()}`,
+      receipt: `rcpt_${shortId}_${timestamp}`,
     };
 
     const auth = btoa(`${razorpayKeyId}:${razorpayKeySecret}`);
