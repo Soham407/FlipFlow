@@ -47,13 +47,15 @@
 .df-vrow {
   background-color: #f5f5f5 !important;
   border: 1px solid #ddd !important;
-  margin: 5px 0 !important;
-  height: 60px !important;
+  margin: 10px auto !important; /* Match dFlip library default margin */
+  height: 124px !important; /* Match dFlip library default height */
+  width: 90% !important; /* Match dFlip library default width */
   cursor: pointer !important;
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
   transition: background-color 0.2s ease !important;
+  border-radius: 5px !important; /* Match dFlip library default border radius */
 }
 
 .df-vrow:hover {
@@ -65,11 +67,13 @@
   color: white !important;
 }
 
-/* Ensure thumbnail images are visible */
+/* Ensure thumbnail images are visible and properly sized */
 .df-vrow img {
   max-width: 100% !important;
   max-height: 100% !important;
   object-fit: contain !important;
+  display: block !important;
+  margin: 0 auto !important;
 }
 
 /* Thumbnail wrapper styling */
