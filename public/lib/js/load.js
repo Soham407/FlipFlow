@@ -14,7 +14,7 @@ function loadFlipbook(pdfUrl, rtlMode, page, pdfId) {
         webgl: true,                  // 3D page-turning effects
         controlsPosition: "none",     // No built-in toolbar (we use custom React toolbar)
         enableThumbnail: true,        // Enable thumbnail functionality
-        autoEnableThumbnail: true,    // Automatically enable thumbnails
+        autoEnableThumbnail: false,   // Don't automatically open thumbnails
         scrollWheel: false,           // Disable mouse wheel zoom
         // ----------------------------------
         
@@ -37,6 +37,13 @@ function loadFlipbook(pdfUrl, rtlMode, page, pdfId) {
         if (typeof $container.flipBook === 'function') {
             // Store the flipbook instance globally so toolbar can access it
             window.currentFlipbook = $container.flipBook(pdfUrl, options);
+            
+            // Ensure thumbnail sidebar starts closed
+            setTimeout(() => {
+                $container.removeClass("df-sidemenu-open");
+                $container.find(".df-sidemenu").removeClass("df-sidemenu-visible");
+            }, 100);
+            
             console.log("✅ Flipbook instance stored globally:", window.currentFlipbook);
         } else {
             console.error("dFlip flipBook function is not available on jQuery object.");
