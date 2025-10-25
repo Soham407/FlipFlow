@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { Share2 } from "lucide-react";
+import { toast } from "sonner";
 
 const iconClass = "w-6 h-6 text-gray-600";
 const btnClass =
@@ -142,6 +144,16 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
     }
   };
 
+  // Function to handle share action
+  const handleShare = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      toast.success("Link copied to clipboard!");
+    }).catch(() => {
+      toast.error("Failed to copy link");
+    });
+  };
+
   // Separate function to execute the actual action
   const executeAction = (action: string, flipbook: any) => {
     switch (action) {
@@ -237,6 +249,15 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
         onClick={() => triggerDFlipAction("download")}
       >
         <svg className={iconClass} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      {/* Share Icon */}
+      <button 
+        type="button" 
+        className={btnClass} 
+        title="Share"
+        onClick={handleShare}
+      >
+        <Share2 className={iconClass} />
       </button>
       {/* More Icon */}
       <button 
