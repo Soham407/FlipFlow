@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useScript } from "@/hooks/useScript";
+import ViewerToolbar from "../components/ViewerToolbar";
 
 // TypeScript declarations for jQuery and dflip
 declare global {
@@ -185,17 +186,23 @@ const Viewer = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
-      <div className="container mx-auto py-8">
-        <Button asChild variant="outline" className="mb-4">
-          <Link to="/dashboard">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Link>
-        </Button>
-
-        <div id="flipbookContainer" className="h-screen w-full"></div>
+    <div className="fixed inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+      <Button asChild variant="outline" className="absolute top-4 left-4 z-10">
+        <Link to="/dashboard">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Dashboard
+        </Link>
+      </Button>
+      {/* Toolbar Row */}
+      <div className="absolute z-20 left-1/2 top-6 -translate-x-1/2">
+        <ViewerToolbar pdfUrl={publicUrl} />
       </div>
+
+      <div id="flipbookContainer" className="h-full w-full" style={{
+        position: 'relative',
+        overflow: 'hidden',
+        zIndex: 1
+      }}></div>
     </div>
   );
 };

@@ -2,6 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom styles for dFlip thumbnail sidebar */
+#flipbookContainer {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Force thumbnail sidebar to be visible and properly positioned */
+.df-sidemenu {
+  z-index: 1000 !important;
+  background-color: rgba(238, 238, 238, 0.95) !important;
+  border-right: 2px solid #ccc !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -220px !important;
+  width: 220px !important;
+  height: 100% !important;
+  transform: translateX(-100%) !important;
+  transition: transform 0.5s ease !important;
+}
+
+.df-sidemenu.df-sidemenu-visible {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+  left: 0 !important;
+}
+
+/* Ensure container adjusts layout when sidebar is open */
+.df-container.df-sidemenu-open .df-book-stage {
+  padding-left: 230px !important;
+}
+
+/* Make sure thumbnail content is visible */
+.df-thumb-container {
+  background-color: white !important;
+  padding: 10px !important;
+  overflow-y: auto !important;
+  height: 100% !important;
+}
+
+.df-vrow {
+  background-color: #f5f5f5 !important;
+  border: 1px solid #ddd !important;
+  margin: 5px 0 !important;
+  height: 60px !important;
+  cursor: pointer !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.df-vrow:hover {
+  background-color: #e0e0e0 !important;
+}
+
+.df-vrow.df-selected {
+  background-color: #007bff !important;
+  color: white !important;
+}
+
+/* Ensure thumbnail images are visible */
+.df-vrow img {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+}
+
+/* Thumbnail wrapper styling */
+.df-thumb-wrapper {
+  background-color: white !important;
+  padding: 10px !important;
+  height: 100% !important;
+  overflow-y: auto !important;
+}
+
+/* Force the sidebar to be visible when the container has df-sidemenu-open */
+.df-container.df-sidemenu-open .df-sidemenu {
+  transform: translateX(0) !important;
+  left: 0 !important;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

@@ -6,6 +6,18 @@ function loadFlipbook(pdfUrl, rtlMode, page, pdfId) {
         duration: 700,
         backgroundColor: "#2F2D2F",
         direction: isRTL ? 2 : 1, // Use 2 for RTL and 1 for LTR
+        
+        // --- ADD THESE CONTROL OPTIONS ---
+        allControls: "thumbnail",     // Enable thumbnail controls (was "none")
+        pageMode: "double",           // Two-page book view
+        enableSounds: true,            // Page turn sounds
+        webgl: true,                  // 3D page-turning effects
+        controlsPosition: "none",     // No built-in toolbar (we use custom React toolbar)
+        enableThumbnail: true,        // Enable thumbnail functionality
+        autoEnableThumbnail: true,    // Automatically enable thumbnails
+        scrollWheel: false,           // Disable mouse wheel zoom
+        // ----------------------------------
+        
         zoomChange: function (isZoomed) {
             // Ensure jQuery is loaded before using $
             if (window.jQuery) {
@@ -23,7 +35,9 @@ function loadFlipbook(pdfUrl, rtlMode, page, pdfId) {
         
         // Check if the flipBook plugin exists
         if (typeof $container.flipBook === 'function') {
-            $container.flipBook(pdfUrl, options);
+            // Store the flipbook instance globally so toolbar can access it
+            window.currentFlipbook = $container.flipBook(pdfUrl, options);
+            console.log("✅ Flipbook instance stored globally:", window.currentFlipbook);
         } else {
             console.error("dFlip flipBook function is not available on jQuery object.");
         }
