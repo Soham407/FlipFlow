@@ -259,45 +259,121 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              FlipFlow
-            </h1>
-            <div className="flex items-center gap-2 mt-2">
-              <Badge variant={userRole === 'pro' ? 'default' : 'secondary'} className="gap-1">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <FileText className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">FlipFlow</h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Badge variant={userRole === 'pro' ? 'default' : 'secondary'} className="gap-1 hidden sm:flex">
                 {userRole === 'pro' && <Crown className="h-3 w-3" />}
                 {userRole === 'pro' ? 'Pro' : 'Free'} Plan
               </Badge>
-              <span className="text-sm text-muted-foreground">
-                {userRole === 'free' ? `${flipbooks.length}/3 flipbooks` : 'Unlimited flipbooks'}
-              </span>
+              {userRole === 'free' && (
+                <Button onClick={handleUpgradeToPro} disabled={processingPayment} size="sm" className="gap-1.5">
+                  {processingPayment ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Crown className="h-4 w-4" />
+                  )}
+                  <span className="hidden sm:inline">Upgrade to Pro</span>
+                  <span className="sm:hidden">Pro</span>
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
             </div>
           </div>
-          <div className="flex gap-2">
-            {userRole === 'free' && (
-              <Button onClick={handleUpgradeToPro} disabled={processingPayment} className="gap-2">
-                {processingPayment ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Crown className="h-4 w-4" />
-                )}
-                Upgrade to Pro - ₹100/year
-              </Button>
-            )}
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-8">
+        {/* Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
+          <Card className="border-2">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Flipbooks</p>
+                  <p className="text-3xl font-bold mt-1">{flipbooks.length}</p>
+                </div>
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Plan Status</p>
+                  <p className="text-3xl font-bold mt-1 capitalize">{userRole}</p>
+                </div>
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+                  <Crown className="h-6 w-6 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {userRole === 'free' ? 'Remaining' : 'Capacity'}
+                  </p>
+                  <p className="text-3xl font-bold mt-1">
+                    {userRole === 'free' ? `${3 - flipbooks.length}` : '∞'}
+                  </p>
+                </div>
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+                  <Upload className="h-6 w-6 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Your Flipbooks</h2>
+              <p className="text-muted-foreground mt-1">
+                {flipbooks.length === 0 
+                  ? "Create your first flipbook to get started" 
+                  : `Managing ${flipbooks.length} flipbook${flipbooks.length !== 1 ? 's' : ''}`
+                }
+              </p>
+            </div>
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
               <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create New Flipbook
+                <Button size="lg" className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Create New Flipbook</span>
+                  <span className="sm:hidden">New</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Upload New Flipbook</DialogTitle>
-                  <DialogDescription>Upload a PDF file to create a new flipbook</DialogDescription>
+                  <DialogDescription>
+                    Upload a PDF file to create a new flipbook. 
+                    {userRole === 'free' && ` (${3 - flipbooks.length} uploads remaining)`}
+                  </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleUpload}>
                   <div className="space-y-4">
@@ -320,60 +396,70 @@ const Dashboard = () => {
                         onChange={(e) => setFile(e.target.files?.[0] || null)}
                         required
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Maximum file size: {userRole === 'pro' ? '50MB' : '10MB'}
+                      </p>
                     </div>
                   </div>
                   <DialogFooter className="mt-6">
                     <Button type="submit" disabled={uploading} className="w-full">
                       {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       <Upload className="mr-2 h-4 w-4" />
-                      Upload Flipbook
+                      {uploading ? 'Uploading...' : 'Upload Flipbook'}
                     </Button>
                   </DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
           </div>
-        </div>
 
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">Your Flipbooks</h2>
           {flipbooks.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                <p>No flipbooks yet. Upload your first PDF to get started!</p>
+            <Card className="border-2 border-dashed">
+              <CardContent className="py-16 text-center">
+                <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary/10 to-accent/10 mb-4">
+                  <FileText className="h-10 w-10 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">No flipbooks yet</h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  Upload your first PDF to create a beautiful, interactive flipbook in seconds.
+                </p>
+                <Button onClick={() => setIsModalOpen(true)} size="lg" className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Create Your First Flipbook
+                </Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {flipbooks.map((flipbook) => (
-                <Card key={flipbook.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-primary" />
+                <Card key={flipbook.id} className="border-2 hover:border-primary/50 transition-all hover:shadow-lg group">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="inline-flex p-2 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10">
+                        <FileText className="h-5 w-5 text-primary" />
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {new Date(flipbook.created_at).toLocaleDateString()}
+                      </Badge>
+                    </div>
+                    <CardTitle className="line-clamp-2 mt-3 group-hover:text-primary transition-colors">
                       {flipbook.title}
                     </CardTitle>
-                    <CardDescription>
-                      {new Date(flipbook.created_at).toLocaleDateString()}
-                    </CardDescription>
                   </CardHeader>
-                  <CardFooter className="flex gap-2">
+                  <CardFooter className="flex gap-2 pt-0">
                     <Button
                       variant="default"
                       size="sm"
-                      className="flex-1"
+                      className="flex-1 gap-2"
                       onClick={() => navigate(`/view/${flipbook.id}`)}
                     >
-                      <Eye className="mr-2 h-4 w-4" />
+                      <Eye className="h-4 w-4" />
                       View
                     </Button>
                     <Button
-                      variant="destructive"
+                      variant="outline"
                       size="sm"
+                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
                       onClick={() => handleDelete(flipbook.id, flipbook.file_path)}
                     >
                       <Trash2 className="h-4 w-4" />
