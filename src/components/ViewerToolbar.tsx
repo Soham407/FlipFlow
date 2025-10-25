@@ -4,38 +4,71 @@ const iconClass = "w-6 h-6 text-gray-600";
 const btnClass =
   "bg-white hover:bg-gray-100 rounded-full flex items-center justify-center w-12 h-12 transition-colors border border-gray-200";
 
+// --- INTERFACE REVERTED ---
 interface ViewerToolbarProps {
   pdfUrl?: string;
 }
 
 function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
   const [isReady, setIsReady] = useState(false);
+  // --- LOCAL STATE RE-ADDED ---
   const [isThumbnailVisible, setIsThumbnailVisible] = useState(false);
 
   // Check if dFlip is ready and sync thumbnail state
   useEffect(() => {
+    let retryCount = 0;
+    const maxRetries = 10;
+    
     const checkReady = () => {
-      if ((window as any).currentFlipbook) {
+      const flipbook = (window as any).currentFlipbook;
+      
+      if (flipbook && window.jQuery) {
         setIsReady(true);
         
-        // Check the actual state of the thumbnail sidebar
-        if (window.jQuery) {
-          const $container = window.jQuery("#flipbookContainer");
-          const isCurrentlyOpen = $container.hasClass("df-sidemenu-open");
+        const $container = window.jQuery("#flipbookContainer");
+        const $sidemenu = $container.find(".df-sidemenu");
+        
+        if ($sidemenu.length > 0) {
+          const isCurrentlyOpen = $sidemenu.hasClass("df-sidemenu-visible");
           setIsThumbnailVisible(isCurrentlyOpen);
           console.log("✅ Toolbar ready - flipbook instance found, thumbnail state:", isCurrentlyOpen);
           
-          // If thumbnail is open, close it to start with closed state
+          // Ensure sidebar starts closed
           if (isCurrentlyOpen) {
-            $container.removeClass("df-sidemenu-open");
-            $container.find(".df-sidemenu").removeClass("df-sidemenu-visible");
+            $sidemenu.removeClass("df-sidemenu-visible");
             setIsThumbnailVisible(false);
             console.log("✅ Thumbnail sidebar closed on initialization");
           }
+
+          // Add page change listener to close sidebar when page changes
+          if (flipbook.target && flipbook.target.updatePageCallback) {
+            const originalCallback = flipbook.target.updatePageCallback;
+            flipbook.target.updatePageCallback = function() {
+              // Call the original callback first
+              originalCallback.call(this);
+              
+              // Close sidebar if it's open (check DOM state directly to avoid stale closure)
+              const $currentSidemenu = window.jQuery("#flipbookContainer").find(".df-sidemenu");
+              if ($currentSidemenu.hasClass("df-sidemenu-visible")) {
+                $currentSidemenu.removeClass("df-sidemenu-visible");
+                setIsThumbnailVisible(false);
+                console.log("✅ Thumbnail sidebar closed due to page change");
+              }
+            };
+            console.log("✅ Page change listener added to close sidebar");
+          }
+        } else {
+          console.log("⚠️ Sidemenu not found yet, will retry...");
+          if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(checkReady, 500);
+          }
         }
+      } else if (retryCount < maxRetries) {
+        retryCount++;
+        setTimeout(checkReady, 500);
       } else {
-        // Check again after a short delay
-        setTimeout(checkReady, 1000);
+        console.warn("⚠️ Failed to initialize toolbar after maximum retries");
       }
     };
     
@@ -44,6 +77,11 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
   }, []);
   // Function to trigger dFlip toolbar actions
   const triggerDFlipAction = (action: string) => {
+    if (!isReady) {
+      console.warn("Toolbar not ready yet. Please wait for initialization.");
+      return;
+    }
+
     // Check if jQuery is available
     if (!window.jQuery) {
       console.warn("jQuery not loaded yet");
@@ -59,7 +97,12 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
     }
 
     console.log("🎯 Executing action:", action, "on flipbook:", flipbook);
-    executeAction(action, flipbook);
+    
+    try {
+      executeAction(action, flipbook);
+    } catch (error) {
+      console.error("Error executing action:", action, error);
+    }
   };
 
   // Function to toggle thumbnail sidebar
@@ -69,62 +112,30 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       return;
     }
 
-    // Defensive: Record the current page before toggling
-    let currentPage = flipbook.getCurrentPage ? flipbook.getCurrentPage() : (flipbook._activePage || 1);
     const $container = window.jQuery("#flipbookContainer");
+    const $sidemenu = $container.find(".df-sidemenu");
     
+    if ($sidemenu.length === 0) {
+      console.warn("No thumbnail sidebar elements found");
+      return;
+    }
+
     try {
-      // Try to use the built-in thumbnail button first
-      const thumbnailButton = $container.find(".df-ui-thumbnail");
+      const isCurrentlyOpen = $sidemenu.hasClass("df-sidemenu-visible");
       
-      if (thumbnailButton.length > 0) {
-        thumbnailButton.trigger("click");
-        setTimeout(() => {
-          const isCurrentlyOpen = $container.hasClass("df-sidemenu-open");
-          setIsThumbnailVisible(isCurrentlyOpen);
-
-          // Defensive: After the DOM has updated, forcibly restore the page if dflip changed it
-          let newPage = flipbook.getCurrentPage ? flipbook.getCurrentPage() : (flipbook._activePage || 1);
-          if (newPage !== currentPage && flipbook.gotoPage) {
-            flipbook.gotoPage(currentPage);
-          }
-        }, 150);
-        console.log("✅ Thumbnail sidebar toggled via built-in button");
-        return;
-      }
-
-      // Fallback: Manual toggle using container classes
-      const sidemenu = $container.find(".df-sidemenu");
-      
-      if (sidemenu.length > 0) {
-        const isCurrentlyOpen = $container.hasClass("df-sidemenu-open");
-        
-        if (isCurrentlyOpen) {
-          $container.removeClass("df-sidemenu-open");
-          sidemenu.removeClass("df-sidemenu-visible");
-        } else {
-          $container.addClass("df-sidemenu-open");
-          sidemenu.addClass("df-sidemenu-visible");
-          
-          // Ensure thumbnails are initialized
-          if (flipbook.contentProvider?.initThumbs) {
-            flipbook.contentProvider.initThumbs();
-          }
-        }
-        
-        // Update state after DOM changes
-        setTimeout(() => {
-          const newState = $container.hasClass("df-sidemenu-open");
-          setIsThumbnailVisible(newState);
-          // Defensive: Restore the page if changed
-          let newPage = flipbook.getCurrentPage ? flipbook.getCurrentPage() : (flipbook._activePage || 1);
-          if (newPage !== currentPage && flipbook.gotoPage) {
-            flipbook.gotoPage(currentPage);
-          }
-        }, 150);
-        console.log("✅ Thumbnail sidebar toggled manually");
+      if (isCurrentlyOpen) {
+        $sidemenu.removeClass("df-sidemenu-visible");
+        setIsThumbnailVisible(false);
+        console.log("✅ Thumbnail sidebar closed");
       } else {
-        console.warn("No thumbnail sidebar elements found");
+        $sidemenu.addClass("df-sidemenu-visible");
+        setIsThumbnailVisible(true);
+        
+        // Ensure thumbnails are initialized
+        if (flipbook.contentProvider?.initThumbs) {
+          flipbook.contentProvider.initThumbs();
+        }
+        console.log("✅ Thumbnail sidebar opened");
       }
     } catch (error) {
       console.error("Error toggling thumbnail sidebar:", error);
@@ -182,11 +193,11 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       {/* Grid Icon */}
       <button 
         type="button" 
-        className={`${isThumbnailVisible 
+        className={`${isThumbnailVisible // --- USES LOCAL STATE ---
           ? 'bg-blue-500 hover:bg-blue-600 text-white border-blue-500' 
           : 'bg-white hover:bg-gray-100 text-gray-600 border-gray-200'
         } rounded-full flex items-center justify-center w-12 h-12 transition-colors border`}
-        title={isThumbnailVisible ? "Hide Thumbnails" : "Show Thumbnails"}
+        title={isThumbnailVisible ? "Hide Thumbnails" : "Show Thumbnails"} // --- USES LOCAL STATE ---
         onClick={() => triggerDFlipAction("grid")}
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
