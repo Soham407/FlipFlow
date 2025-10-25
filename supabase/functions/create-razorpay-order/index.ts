@@ -64,19 +64,21 @@ serve(async (req) => {
 
     const order = await response.json();
 
-    // Create subscription record
-    const { error: insertError } = await supabase
+    // Create or update subscription record
+    const { error: upsertError } = await supabase
       .from('subscriptions')
-      .insert({
+      .upsert({
         user_id: user.id,
         amount: amount,
         currency: 'INR',
         status: 'pending',
         razorpay_order_id: order.id,
+      }, {
+        onConflict: 'user_id'
       });
 
-    if (insertError) {
-      console.error('Database error:', insertError);
+    if (upsertError) {
+      console.error('Database error:', upsertError);
       throw new Error('Failed to create subscription record');
     }
 
