@@ -35,6 +35,28 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
+    // Check if user already has an active Pro subscription
+    const { data: existingSubscription } = await supabase
+      .from('subscriptions')
+      .select('status, expires_at')
+      .eq('user_id', user.id)
+      .eq('status', 'completed')
+      .single();
+
+    if (existingSubscription) {
+      const expiresAt = existingSubscription.expires_at ? new Date(existingSubscription.expires_at) : null;
+      if (expiresAt && expiresAt > new Date()) {
+        console.log('User already has active subscription');
+        return new Response(
+          JSON.stringify({ error: 'Subscription already active' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    }
+
     // Create Razorpay order
     const amount = 10000; // 100 INR in paise
     // Receipt must be max 40 chars - use shortened user ID + timestamp

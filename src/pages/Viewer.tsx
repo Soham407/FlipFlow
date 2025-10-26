@@ -5,14 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useScript } from "@/hooks/useScript";
 import ViewerToolbar from "../components/ViewerToolbar";
 
-// TypeScript declarations for jQuery and dflip
+// TypeScript declarations for global functions
 declare global {
   interface Window {
     $: any;
     jQuery: any;
+    loadFlipbook: (url: string, isSinglePage: boolean, page: number, pdfId: string) => void;
+    getLastPage: (pdfId: string) => Promise<number>;
   }
 }
 
@@ -27,30 +28,24 @@ const Viewer = () => {
   const [flipbook, setFlipbook] = useState<Flipbook | null>(null);
   const [loading, setLoading] = useState(true);
   const [publicUrl, setPublicUrl] = useState<string | null>(null);
+  const [scriptsReady, setScriptsReady] = useState(false);
 
-  // Load jQuery first
-  const { loaded: jqueryLoaded, error: jqueryError } = useScript({
-    src: '/lib/js/libs/jquery.min.js',
-    enabled: true
-  });
-
-  // Load pageMemory.js only after jQuery is loaded
-  const { loaded: pageMemoryLoaded, error: pageMemoryError } = useScript({
-    src: '/lib/js/pageMemory.js',
-    enabled: jqueryLoaded
-  });
-
-  // Load dflip.js only after pageMemory is loaded
-  const { loaded: dflipLoaded, error: dflipError } = useScript({
-    src: '/lib/js/dflip.js',
-    enabled: pageMemoryLoaded
-  });
-
-  // Load load.js only after dflip is loaded
-  const { loaded: loadLoaded, error: loadError } = useScript({
-    src: '/lib/js/load.js',
-    enabled: dflipLoaded
-  });
+  // Check if all scripts are loaded
+  useEffect(() => {
+    const checkScripts = () => {
+      if (
+        typeof window.$ !== 'undefined' &&
+        typeof window.loadFlipbook === 'function' &&
+        typeof window.getLastPage === 'function'
+      ) {
+        setScriptsReady(true);
+      } else {
+        setTimeout(checkScripts, 100);
+      }
+    };
+    
+    checkScripts();
+  }, []);
 
   // Fetch flipbook data from Supabase
   useEffect(() => {
@@ -96,73 +91,41 @@ const Viewer = () => {
     getPublicUrl();
   }, [flipbook]);
 
-  // Initialize flipbook when load.js and publicUrl are ready
+  // Initialize flipbook when scripts and data are ready
   useEffect(() => {
-    // Check if all necessary functions and data are available
-    if (loadLoaded && publicUrl && flipbook && (window as any).loadFlipbook && (window as any).getLastPage) {
-      
-      // Use a minimal timeout to ensure the DOM is fully ready after this render
+    if (scriptsReady && publicUrl && flipbook) {
       setTimeout(() => {
-        console.log('✅ loadFlipbook and dependencies are ready. Initializing...');
+        console.log('✅ Initializing flipbook...');
         
         const urlParams = new URLSearchParams(window.location.search);
         const pageFromUrl = parseInt(urlParams.get('page') || 'NaN', 10);
         
-        // Use the flipbook ID for persistence, fall back to URL
-        const pdfId = flipbook.id || publicUrl; 
+        const pdfId = flipbook.id || publicUrl;
 
         if (!isNaN(pageFromUrl)) {
-            // If page is in URL params, use that
-            (window as any).loadFlipbook(publicUrl, false, pageFromUrl, pdfId);
+          window.loadFlipbook(publicUrl, false, pageFromUrl, pdfId);
         } else {
-            // If no page in URL, try to get from IndexedDB (pageMemory.js)
-            (window as any).getLastPage(pdfId).then(function(storedPage: number) {
-                (window as any).loadFlipbook(publicUrl, false, storedPage || 1, pdfId);
-            });
+          window.getLastPage(pdfId).then((storedPage: number) => {
+            window.loadFlipbook(publicUrl, false, storedPage || 1, pdfId);
+          });
         }
       }, 0);
-
-    } else if (loadLoaded && publicUrl && flipbook) {
-      // This else-if helps debug if functions are missing
-      console.error('❌ Critical error: loadFlipbook or getLastPage function is not available on window.');
     }
-  }, [loadLoaded, publicUrl, flipbook]); // Add flipbook as a dependency
+  }, [scriptsReady, publicUrl, flipbook]);
 
-  // Show loading state while scripts are loading or data is fetching
-  if (loading || !jqueryLoaded || !pageMemoryLoaded || !dflipLoaded || !loadLoaded || !flipbook || !publicUrl) {
+  // Show loading state
+  if (loading || !scriptsReady || !flipbook || !publicUrl) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
           <p className="text-muted-foreground">
             {loading ? 'Loading flipbook...' : 
-             !jqueryLoaded ? 'Loading jQuery...' :
-             !pageMemoryLoaded ? 'Loading page memory...' :
-             !dflipLoaded ? 'Loading PDF viewer...' :
-             !loadLoaded ? 'Loading flipbook loader...' :
+             !scriptsReady ? 'Loading PDF viewer...' :
              !flipbook ? 'Loading flipbook data...' :
              'Preparing PDF...'}
           </p>
         </div>
-      </div>
-    );
-  }
-
-  // Show error states
-  if (jqueryError || pageMemoryError || dflipError || loadError) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
-        <Card>
-          <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground">Failed to load PDF viewer</p>
-            <Button asChild className="mt-4">
-              <Link to="/dashboard">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Dashboard
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     );
   }
