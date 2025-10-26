@@ -23,11 +23,33 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('Login page useEffect running');
+    
+    // Check if this is an OAuth callback by looking for hash in URL
+    const hashParams = window.location.hash;
+    if (hashParams) {
+      console.log('OAuth callback detected, hash:', hashParams);
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session ? 'Session exists' : 'No session');
       if (session) {
+        console.log('Redirecting to dashboard');
         navigate("/dashboard");
       }
     });
+
+    // Listen for auth state changes (including OAuth callbacks)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
+      
+      if (session) {
+        console.log('Auth state change - Redirecting to dashboard');
+        navigate("/dashboard");
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -66,7 +88,7 @@ const Login = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
