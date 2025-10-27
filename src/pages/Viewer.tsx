@@ -54,11 +54,13 @@ const Viewer = () => {
         const { data, error } = await supabase
           .from("flipbooks")
           .select("*")
-          .eq("id", id)
-          .single();
+          .eq("id", id as string)
+          .maybeSingle();
 
         if (error) throw error;
-        setFlipbook(data);
+        if (data) {
+          setFlipbook(data as any);
+        }
       } catch (error: any) {
         toast.error("Failed to load flipbook");
       } finally {
