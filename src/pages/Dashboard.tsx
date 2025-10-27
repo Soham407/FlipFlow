@@ -205,7 +205,7 @@ const Dashboard = () => {
         amount: orderData.amount,
         currency: orderData.currency,
         name: "FlipFlow",
-        description: "Pro Subscription - ₹100/year",
+        description: "Pro Subscription - ₹100/month",
         order_id: orderData.orderId,
         handler: async (response: any) => {
           try {

@@ -202,7 +202,7 @@ const Index = () => {
                 </div>
                 <div className="flex items-baseline gap-1 mb-4">
                   <span className="text-4xl font-bold">₹100</span>
-                  <span className="text-muted-foreground">/year</span>
+                  <span className="text-muted-foreground">/month</span>
                 </div>
                 <p className="text-muted-foreground">Unlimited flipbooks for professionals</p>
               </div>
