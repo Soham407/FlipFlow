@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Share2 } from "lucide-react";
 import { toast } from "sonner";
 
-const iconClass = "w-6 h-6 text-gray-600";
+const iconClass = "w-4 h-4 text-gray-600";
 const btnClass =
-  "bg-white hover:bg-gray-100 rounded-full flex items-center justify-center w-12 h-12 transition-colors border border-gray-200";
+  "bg-white hover:bg-gray-100 rounded-full flex items-center justify-center w-9 h-9 transition-colors border border-gray-200";
 
 // --- INTERFACE REVERTED ---
 interface ViewerToolbarProps {
@@ -201,18 +201,18 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
   };
 
   return (
-    <div className={`rounded-[2rem] bg-white/80 shadow-xl flex items-center gap-4 px-4 py-2 backdrop-blur-sm ${!isReady ? 'opacity-50' : ''}`}>
+    <div className={`rounded-[1.5rem] bg-white/80 shadow-xl flex items-center gap-2 px-3 py-1.5 backdrop-blur-sm ${!isReady ? 'opacity-50' : ''}`}>
       {/* Grid Icon */}
       <button 
         type="button" 
         className={`${isThumbnailVisible // --- USES LOCAL STATE ---
           ? 'bg-blue-500 hover:bg-blue-600 text-white border-blue-500' 
           : 'bg-white hover:bg-gray-100 text-gray-600 border-gray-200'
-        } rounded-full flex items-center justify-center w-12 h-12 transition-colors border`}
+        } rounded-full flex items-center justify-center w-9 h-9 transition-colors border`}
         title={isThumbnailVisible ? "Hide Thumbnails" : "Show Thumbnails"} // --- USES LOCAL STATE ---
         onClick={() => triggerDFlipAction("grid")}
       >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
       </button>
       {/* Plus/Zoom In Icon */}
       <button 
