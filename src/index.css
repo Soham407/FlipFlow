@@ -6,6 +6,7 @@
 #flipbookContainer {
   position: relative !important;
   overflow: hidden !important;
+  height: calc(100% - 80px) !important;
 }
 
 /* Force thumbnail sidebar to be visible and properly positioned */

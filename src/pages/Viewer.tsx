@@ -157,15 +157,11 @@ const Viewer = () => {
         </Link>
       </Button>
       {/* Toolbar Row */}
-      <div className="absolute z-20 left-1/2 top-6 -translate-x-1/2">
+      <div className="absolute z-20 left-1/2 bottom-6 -translate-x-1/2">
         <ViewerToolbar pdfUrl={publicUrl} />
       </div>
 
-      <div id="flipbookContainer" className="h-full w-full" style={{
-        position: 'relative',
-        overflow: 'hidden',
-        zIndex: 1
-      }}></div>
+      <div id="flipbookContainer" className="w-full"></div>
     </div>
   );
 };
