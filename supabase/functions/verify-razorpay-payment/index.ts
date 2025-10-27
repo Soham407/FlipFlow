@@ -52,14 +52,14 @@ serve(async (req) => {
       throw new Error('Invalid signature');
     }
 
-    // Update subscription
+    // Update subscription - 1 month for 100 INR
     const expiresAt = new Date();
-    expiresAt.setFullYear(expiresAt.getFullYear() + 1); // 1 year from now
+    expiresAt.setMonth(expiresAt.getMonth() + 1); // 1 month from now
 
     const { error: updateError } = await supabaseAdmin
       .from('subscriptions')
       .update({
-        status: 'active',
+        status: 'completed',
         razorpay_payment_id,
         razorpay_signature,
         expires_at: expiresAt.toISOString(),
