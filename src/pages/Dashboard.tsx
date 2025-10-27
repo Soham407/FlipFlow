@@ -71,12 +71,12 @@ const Dashboard = () => {
       }
 
       if (roleData) {
-        setUserRole(roleData.role);
+        setUserRole(roleData.role as 'free' | 'pro');
       } else {
         // No role found, create a default free role
         const { error: insertError } = await supabase
           .from('user_roles')
-          .insert([{ user_id: session?.user?.id, role: 'free' }]);
+          .insert({ user_id: session?.user?.id || '', role: 'free' });
         
         if (insertError) {
           console.error('Error creating user role:', insertError);
@@ -97,7 +97,7 @@ const Dashboard = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setFlipbooks(data || []);
+      setFlipbooks((data as any) || []);
     } catch (error: any) {
       toast.error("Failed to load flipbooks");
     } finally {
@@ -136,7 +136,7 @@ const Dashboard = () => {
 
       const { error: dbError } = await supabase
         .from("flipbooks")
-        .insert([{ title, file_path: fileName, user_id: session.user.id, file_size: file.size }]);
+        .insert({ title, file_path: fileName, user_id: session.user.id, file_size: file.size });
 
       if (dbError) throw dbError;
 
