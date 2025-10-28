@@ -278,9 +278,7 @@ const Dashboard = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <FileText className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <img src="/Images/FF Logo.png" alt="FlipFlow" className="h-10 w-10 sm:h-12 sm:w-12" />
               <div>
                 <h1 className="text-xl font-bold">FlipFlow</h1>
               </div>
