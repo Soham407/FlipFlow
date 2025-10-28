@@ -56,35 +56,48 @@ const Dashboard = () => {
   }, [session]);
 
   const fetchUserRole = async () => {
+    if (!session?.user?.id) {
+      console.log('No session user ID available');
+      setUserRole('free');
+      return;
+    }
+
     try {
+      console.log('Fetching user role for user:', session.user.id);
       const { data: roleData, error } = await supabase
         .from('user_roles')
         .select('role')
+        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (error) {
         console.error('Error loading user role:', error);
-        setUserRole('free'); // Default to free on error
+        setUserRole('free');
         return;
       }
 
       if (roleData) {
+        console.log('User role found:', roleData.role);
         setUserRole(roleData.role as 'free' | 'pro');
       } else {
+        console.log('No role found, creating default free role');
         // No role found, create a default free role
         const { error: insertError } = await supabase
           .from('user_roles')
-          .insert({ user_id: session?.user?.id || '', role: 'free' });
+          .insert({ user_id: session.user.id, role: 'free' });
         
         if (insertError) {
           console.error('Error creating user role:', insertError);
+          console.error('Insert error details:', JSON.stringify(insertError));
+        } else {
+          console.log('Successfully created free role');
         }
         setUserRole('free');
       }
     } catch (error) {
-      console.error('Error loading user role:', error);
+      console.error('Error in fetchUserRole:', error);
       setUserRole('free');
     }
   };
