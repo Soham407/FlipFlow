@@ -7,7 +7,21 @@
   position: relative !important;
   overflow: hidden !important;
   height: calc(100% - 80px) !important;
+  background-color: rgba(238, 238, 238, 0.95)!important;
 }
+
+/* Hide dFlip built-in loader */
+.df-info {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Ensure dFlip container background matches */
+.df-container {
+  background-color: transparent !important;
+}
+
 
 /* Force thumbnail sidebar to be visible and properly positioned */
 .df-sidemenu {

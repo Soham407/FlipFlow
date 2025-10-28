@@ -1,6 +1,35 @@
 // Function to load the flipbook
 function loadFlipbook(pdfUrl, rtlMode, page, pdfId) {
     var isRTL = rtlMode || false;  // Default to LTR
+    
+    // Track PDF loading progress manually
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', pdfUrl, true);
+    xhr.responseType = 'blob';
+    
+    xhr.addEventListener('progress', function(e) {
+        if (e.lengthComputable) {
+            var percentComplete = Math.round((e.loaded / e.total) * 100);
+            if (typeof window.onPdfProgress === 'function') {
+                window.onPdfProgress(percentComplete);
+            }
+        }
+    });
+    
+    xhr.addEventListener('load', function() {
+        // PDF download complete, now let dFlip render it
+        initializeFlipbook(pdfUrl, isRTL, page, pdfId);
+    });
+    
+    xhr.addEventListener('error', function() {
+        console.error('Error loading PDF');
+        // Still try to initialize in case the blob is available
+        initializeFlipbook(pdfUrl, isRTL, page, pdfId);
+    });
+    
+    xhr.send();
+    
+    function initializeFlipbook(url, isRTL, page, pdfId) {
     var options = {
         height: "100%",
         duration: 700,
@@ -25,31 +54,45 @@ function loadFlipbook(pdfUrl, rtlMode, page, pdfId) {
             }
         },
         openPage: page || 1,
-        pdfId: pdfId || pdfUrl
+        pdfId: pdfId || pdfUrl,
+        
+        // PDF Loading Progress Callbacks
+        onReady: function() {
+            console.log('✅ PDF is fully loaded');
+            if (typeof window.onPdfReady === 'function') {
+                window.onPdfReady();
+            }
+        },
+        onProgress: function(progress) {
+            if (typeof window.onPdfProgress === 'function') {
+                window.onPdfProgress(progress);
+            }
+        }
     };
 
-    // Ensure jQuery is loaded before using $
-    if (window.jQuery) {
-        var $container = window.jQuery("#flipbookContainer");
-        $container.empty();
-        
-        // Check if the flipBook plugin exists
-        if (typeof $container.flipBook === 'function') {
-            // Store the flipbook instance globally so toolbar can access it
-            window.currentFlipbook = $container.flipBook(pdfUrl, options);
+        // Ensure jQuery is loaded before using $
+        if (window.jQuery) {
+            var $container = window.jQuery("#flipbookContainer");
+            $container.empty();
             
-            // Ensure thumbnail sidebar starts closed
-            setTimeout(() => {
-                $container.removeClass("df-sidemenu-open");
-                $container.find(".df-sidemenu").removeClass("df-sidemenu-visible");
-            }, 100);
-            
-            console.log("✅ Flipbook instance stored globally:", window.currentFlipbook);
+            // Check if the flipBook plugin exists
+            if (typeof $container.flipBook === 'function') {
+                // Store the flipbook instance globally so toolbar can access it
+                window.currentFlipbook = $container.flipBook(url, options);
+                
+                // Ensure thumbnail sidebar starts closed
+                setTimeout(() => {
+                    $container.removeClass("df-sidemenu-open");
+                    $container.find(".df-sidemenu").removeClass("df-sidemenu-visible");
+                }, 100);
+                
+                console.log("✅ Flipbook instance stored globally:", window.currentFlipbook);
+            } else {
+                console.error("dFlip flipBook function is not available on jQuery object.");
+            }
         } else {
-            console.error("dFlip flipBook function is not available on jQuery object.");
+            console.error("jQuery is not loaded.");
         }
-    } else {
-        console.error("jQuery is not loaded.");
     }
 }
 

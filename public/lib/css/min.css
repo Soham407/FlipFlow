@@ -46,49 +46,8 @@
     z-index: 999999
 }
 
-.df-container .loading-info {
-    position: absolute;
-    top: 100%;
-    margin-top: 20px;
-    margin-left: 5px;
-    padding: 6px 20px;
-    background-color: rgba(0, 0, 0, 0.3);
-    font-style: italic;
-    border-radius: 5px;
-    font-size: 11px;
-    max-height: 30px;
-    color: #fff;
-    max-width: 200px;
-    transform: translateX(-50%);
-    -moz-transform: translateX(-50%);
-    -ms-transform: translateX(-50%);
-    -webkit-transform: translateX(-50%);
-    left: 50%;
-    opacity: .7;
-    transition: .3s top ease;
-    -webkit-transition: .3s top ease
-}
-
-.loading-info.df-old-browser {
-    color: rgb(207, 207, 207);
-    background-color: white;
-    opacity: .9;
-    text-align: center;
-    max-height: none
-}
-
-.loading-info.df-old-browser a {
-    font-weight: bold;
-    font-style: normal;
-    text-transform: uppercase;
-    color: #353535;
-    display: block;
-    text-decoration: underline;
-    margin: 10px 0 0
-}
-
-.df-container.df-init .loading-info {
-    top: 50%
+.df-container .loading-info, .loading-info.df-old-browser, .df-container.df-init .loading-info {
+    display: none !important;
 }
 
 .df-3dcanvas {
