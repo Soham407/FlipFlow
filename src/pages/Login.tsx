@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Loader2, FileText, Mail } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -105,9 +105,7 @@ const Login = () => {
         {/* Logo */}
         <div className="text-center">
           <Link to="/" className="inline-flex items-center gap-2 mb-2">
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <FileText className="h-6 w-6 text-primary-foreground" />
-            </div>
+            <img src="/Images/FF Logo.png" alt="FlipFlow" className="h-10 w-10 sm:h-12 sm:w-12" />
             <span className="text-2xl font-bold">FlipFlow</span>
           </Link>
           <p className="text-muted-foreground mt-2">Welcome back to FlipFlow</p>
