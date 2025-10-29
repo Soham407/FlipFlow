@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Share2 } from "lucide-react";
+import { Share2, RectangleHorizontal, Fullscreen } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const iconClass = "w-4 h-4 text-gray-600";
 const btnClass =
@@ -13,8 +19,8 @@ interface ViewerToolbarProps {
 
 function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
   const [isReady, setIsReady] = useState(false);
-  // --- LOCAL STATE RE-ADDED ---
   const [isThumbnailVisible, setIsThumbnailVisible] = useState(false);
+  const [isSinglePage, setIsSinglePage] = useState(false);
 
   // Check if dFlip is ready and sync thumbnail state
   useEffect(() => {
@@ -26,6 +32,13 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       
       if (flipbook && window.jQuery) {
         setIsReady(true);
+        
+        // Check initial page mode
+        if (flipbook.options) {
+          const isCurrentlySingle = flipbook.options.singlePage === true;
+          setIsSinglePage(isCurrentlySingle);
+          console.log("✅ Toolbar ready - initial page mode:", isCurrentlySingle ? "single" : "double");
+        }
         
         const $container = window.jQuery("#flipbookContainer");
         const $sidemenu = $container.find(".df-sidemenu");
@@ -195,6 +208,17 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       case "grid":
         toggleThumbnailSidebar(flipbook);
         break;
+      case "togglePageMode":
+        if (flipbook.options && flipbook.update) {
+          const newMode = !flipbook.options.singlePage;
+          flipbook.options.singlePage = newMode;
+          flipbook.update();
+          setIsSinglePage(newMode);
+          console.log("✅ Page mode toggled to:", newMode ? "single" : "double");
+        } else {
+          console.warn("⚠️ Cannot toggle page mode: flipbook.options or flipbook.update is missing.");
+        }
+        break;
       default:
         console.log(`Action ${action} not implemented`);
     }
@@ -259,15 +283,29 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       >
         <Share2 className={iconClass} />
       </button>
-      {/* More Icon */}
-      <button 
-        type="button" 
-        className={btnClass} 
-        title="More"
-        onClick={() => triggerDFlipAction("fullscreen")}
-      >
-        <svg className={iconClass} fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-      </button>
+
+      {/* More Options Dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button 
+            type="button" 
+            className={btnClass} 
+            title="More"
+          >
+            <svg className={iconClass} fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="mb-2 w-48" align="end">
+          <DropdownMenuItem onClick={() => triggerDFlipAction("fullscreen")}>
+            <Fullscreen className="w-4 h-4 mr-2" />
+            <span>Toggle Fullscreen</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => triggerDFlipAction("togglePageMode")}>
+            <RectangleHorizontal className="w-4 h-4 mr-2" />
+            <span>{isSinglePage ? "Show Double Page" : "Show Single Page"}</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
