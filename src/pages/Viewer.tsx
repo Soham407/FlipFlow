@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import ViewerToolbar from "../components/ViewerToolbar";
 
@@ -181,6 +181,23 @@ const Viewer = () => {
           <span className="hidden sm:inline">Back to Dashboard</span>
           <span className="sm:hidden">Back</span>
         </Link>
+      </Button>
+      {/* Top-right Share Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 text-xs sm:text-sm"
+        title="Share"
+        onClick={() => {
+          const url = window.location.href;
+          navigator.clipboard.writeText(url)
+            .then(() => toast.success("Link copied to clipboard!"))
+            .catch(() => toast.error("Failed to copy link"));
+        }}
+      >
+        <Share2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+        <span className="hidden sm:inline">Share</span>
+        <span className="sm:hidden">Copy</span>
       </Button>
       {/* Toolbar Row */}
       <div className="fixed z-20 left-1/2 bottom-4 sm:bottom-6 -translate-x-1/2 w-[calc(100%-1rem)] sm:w-auto max-w-full overflow-x-auto px-2 sm:px-0">
