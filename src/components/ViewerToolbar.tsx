@@ -33,11 +33,15 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       if (flipbook && window.jQuery) {
         setIsReady(true);
         
-        // Check initial page mode
-        if (flipbook.options) {
-          const isCurrentlySingle = flipbook.options.singlePage === true;
-          setIsSinglePage(isCurrentlySingle);
+        // Check initial page mode from dFlip target
+        try {
+          const target = flipbook.target || flipbook;
+          const currentMode = target?.pageMode; // 1 = SINGLE, 2 = DOUBLE
+          const isCurrentlySingle = currentMode === 1 || flipbook.options?.pageMode === "single";
+          setIsSinglePage(!!isCurrentlySingle);
           console.log("✅ Toolbar ready - initial page mode:", isCurrentlySingle ? "single" : "double");
+        } catch (e) {
+          console.warn("⚠️ Unable to read initial page mode", e);
         }
         
         const $container = window.jQuery("#flipbookContainer");
@@ -205,27 +209,43 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       case "grid":
         toggleThumbnailSidebar(flipbook);
         break;
-      case "togglePageMode":
-        if (flipbook.options) {
-          const newMode = !flipbook.options.singlePage;
-          flipbook.options.singlePage = newMode;
-          
-          // Force refresh the flipbook view
-          if (flipbook.refresh) {
-            flipbook.refresh();
-          } else if (flipbook.target && flipbook.target.resize) {
-            flipbook.target.resize();
-          } else if (flipbook.updateBook) {
-            flipbook.updateBook();
+      case "togglePageMode": {
+        const target = flipbook.target || flipbook;
+        if (!target) {
+          console.warn("⚠️ Cannot toggle page mode: flipbook target missing.");
+          break;
+        }
+
+        // dFlip constants: 1=SINGLE, 2=DOUBLE
+        const currentlySingle = target.pageMode === 1;
+        const newSingle = !currentlySingle;
+
+        try {
+          // Use UI helper if available (updates button state and resizes)
+          if (flipbook.ui?.setPageMode) {
+            flipbook.ui.setPageMode(newSingle);
+          } else {
+            // Fallback: set pageMode directly and resize
+            target.pageMode = newSingle ? 1 : 2;
+            if (typeof flipbook.resize === "function") {
+              flipbook.resize();
+            } else if (typeof target.resize === "function") {
+              target.resize();
+            } else if (typeof flipbook.refresh === "function") {
+              flipbook.refresh();
+            } else if (typeof flipbook.updateBook === "function") {
+              flipbook.updateBook();
+            }
           }
-          
-          setIsSinglePage(newMode);
-          console.log("✅ Page mode toggled to:", newMode ? "single" : "double", flipbook);
-          toast.success(`Switched to ${newMode ? "single" : "double"} page mode`);
-        } else {
-          console.warn("⚠️ Cannot toggle page mode: flipbook.options is missing.");
+
+          setIsSinglePage(newSingle);
+          console.log("✅ Page mode toggled to:", newSingle ? "single" : "double");
+          toast.success(`Switched to ${newSingle ? "single" : "double"} page mode`);
+        } catch (e) {
+          console.error("Error toggling page mode", e);
         }
         break;
+      }
       default:
         console.log(`Action ${action} not implemented`);
     }
