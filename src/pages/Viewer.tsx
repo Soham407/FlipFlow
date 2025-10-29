@@ -175,30 +175,31 @@ const Viewer = () => {
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5">
-      <Button asChild variant="outline" className="absolute top-4 left-4 z-10">
+      <Button asChild variant="outline" size="sm" className="absolute top-2 left-2 sm:top-4 sm:left-4 z-10 text-xs sm:text-sm">
         <Link to="/dashboard">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Dashboard
+          <ArrowLeft className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline">Back to Dashboard</span>
+          <span className="sm:hidden">Back</span>
         </Link>
       </Button>
       {/* Toolbar Row */}
-      <div className="absolute z-20 left-1/2 bottom-6 -translate-x-1/2">
+      <div className="fixed z-20 left-1/2 bottom-4 sm:bottom-6 -translate-x-1/2 w-[calc(100%-1rem)] sm:w-auto max-w-full overflow-x-auto px-2 sm:px-0">
         <ViewerToolbar pdfUrl={publicUrl} />
       </div>
 
       {/* PDF Loading Overlay */}
       {!isPdfReady && (
         <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 z-30">
-          <div className="text-center">
+          <div className="text-center px-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               Loading PDF {Math.round(pdfLoadingProgress)}%
             </p>
           </div>
         </div>
       )}
 
-      <div id="flipbookContainer" className="w-full"></div>
+      <div id="flipbookContainer" className="w-full h-full"></div>
     </div>
   );
 };
