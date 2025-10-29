@@ -152,7 +152,13 @@ const Dashboard = () => {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !session) return;
+    
+    if (!file) {
+      toast.error("Please select a file");
+      return;
+    }
+    
+    if (!session) return;
 
     // Check flipbook limit
     const maxFlipbooks = userRole === 'pro' ? Infinity : 3;
@@ -438,7 +444,6 @@ const Dashboard = () => {
                           accept=".pdf"
                           onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                          required
                         />
                         <div className="pointer-events-none">
                           <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
