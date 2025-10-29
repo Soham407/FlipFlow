@@ -8,9 +8,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const iconClass = "w-4 h-4 text-gray-600";
+const iconClass = "w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600";
 const btnClass =
-  "bg-white hover:bg-gray-100 rounded-full flex items-center justify-center w-9 h-9 transition-colors border border-gray-200";
+  "bg-white hover:bg-gray-100 rounded-full flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 transition-colors border border-gray-200";
 
 // --- INTERFACE REVERTED ---
 interface ViewerToolbarProps {
@@ -25,7 +25,7 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
   // Check if dFlip is ready and sync thumbnail state
   useEffect(() => {
     let retryCount = 0;
-    const maxRetries = 10;
+    const maxRetries = 20;
     
     const checkReady = () => {
       const flipbook = (window as any).currentFlipbook;
@@ -59,10 +59,7 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           if (flipbook.target && flipbook.target.updatePageCallback) {
             const originalCallback = flipbook.target.updatePageCallback;
             flipbook.target.updatePageCallback = function() {
-              // Call the original callback first
               originalCallback.call(this);
-              
-              // Close sidebar if it's open (check DOM state directly to avoid stale closure)
               const $currentSidemenu = window.jQuery("#flipbookContainer").find(".df-sidemenu");
               if ($currentSidemenu.hasClass("df-sidemenu-visible")) {
                 $currentSidemenu.removeClass("df-sidemenu-visible");
@@ -76,19 +73,19 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           console.log("⚠️ Sidemenu not found yet, will retry...");
           if (retryCount < maxRetries) {
             retryCount++;
-            setTimeout(checkReady, 500);
+            setTimeout(checkReady, 300);
           }
         }
       } else if (retryCount < maxRetries) {
         retryCount++;
-        setTimeout(checkReady, 500);
+        setTimeout(checkReady, 300);
       } else {
         console.warn("⚠️ Failed to initialize toolbar after maximum retries");
       }
     };
     
-    // Start checking after a brief delay to allow initialization
-    setTimeout(checkReady, 1000);
+    // Start checking immediately
+    setTimeout(checkReady, 500);
   }, []);
   // Function to trigger dFlip toolbar actions
   const triggerDFlipAction = (action: string) => {
@@ -209,14 +206,24 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
         toggleThumbnailSidebar(flipbook);
         break;
       case "togglePageMode":
-        if (flipbook.options && flipbook.update) {
+        if (flipbook.options) {
           const newMode = !flipbook.options.singlePage;
           flipbook.options.singlePage = newMode;
-          flipbook.update();
+          
+          // Force refresh the flipbook view
+          if (flipbook.refresh) {
+            flipbook.refresh();
+          } else if (flipbook.target && flipbook.target.resize) {
+            flipbook.target.resize();
+          } else if (flipbook.updateBook) {
+            flipbook.updateBook();
+          }
+          
           setIsSinglePage(newMode);
-          console.log("✅ Page mode toggled to:", newMode ? "single" : "double");
+          console.log("✅ Page mode toggled to:", newMode ? "single" : "double", flipbook);
+          toast.success(`Switched to ${newMode ? "single" : "double"} page mode`);
         } else {
-          console.warn("⚠️ Cannot toggle page mode: flipbook.options or flipbook.update is missing.");
+          console.warn("⚠️ Cannot toggle page mode: flipbook.options is missing.");
         }
         break;
       default:
@@ -225,7 +232,7 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
   };
 
   return (
-    <div className={`rounded-[1.5rem] bg-white/80 shadow-xl flex items-center gap-2 px-3 py-1.5 backdrop-blur-sm ${!isReady ? 'opacity-50' : ''}`}>
+    <div className={`rounded-[1.5rem] bg-white/80 shadow-xl flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 backdrop-blur-sm ${!isReady ? 'opacity-50 pointer-events-none' : ''}`}>
       {/* Grid Icon */}
       <button 
         type="button" 
