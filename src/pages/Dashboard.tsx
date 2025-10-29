@@ -28,6 +28,7 @@ const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userRole, setUserRole] = useState<'free' | 'pro'>('free');
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -115,6 +116,37 @@ const Dashboard = () => {
       toast.error("Failed to load flipbooks");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileSelect = (selectedFile: File | null) => {
+    if (selectedFile) {
+      setFile(selectedFile);
+      // Auto-populate title from filename (without extension)
+      const fileNameWithoutExt = selectedFile.name.replace(/\.[^/.]+$/, "");
+      setTitle(fileNameWithoutExt);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile && droppedFile.type === "application/pdf") {
+      handleFileSelect(droppedFile);
+    } else {
+      toast.error("Please drop a PDF file");
     }
   };
 
@@ -389,6 +421,46 @@ const Dashboard = () => {
                 <form onSubmit={handleUpload}>
                   <div className="space-y-4">
                     <div className="space-y-2">
+                      <Label htmlFor="file">PDF File</Label>
+                      <div
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        className={`
+                          relative border-2 border-dashed rounded-lg p-8 text-center transition-colors
+                          ${isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}
+                          ${file ? 'bg-muted/50' : ''}
+                        `}
+                      >
+                        <Input
+                          id="file"
+                          type="file"
+                          accept=".pdf"
+                          onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          required
+                        />
+                        <div className="pointer-events-none">
+                          <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+                          {file ? (
+                            <div>
+                              <p className="font-medium text-foreground">{file.name}</p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {(file.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="font-medium text-foreground">Drop your PDF here or click to browse</p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Maximum file size: {userRole === 'pro' ? '50MB' : '10MB'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="title">Title</Label>
                       <Input
                         id="title"
@@ -397,18 +469,8 @@ const Dashboard = () => {
                         onChange={(e) => setTitle(e.target.value)}
                         required
                       />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="file">PDF File</Label>
-                      <Input
-                        id="file"
-                        type="file"
-                        accept=".pdf"
-                        onChange={(e) => setFile(e.target.files?.[0] || null)}
-                        required
-                      />
                       <p className="text-xs text-muted-foreground">
-                        Maximum file size: {userRole === 'pro' ? '50MB' : '10MB'}
+                        Auto-filled from PDF name, edit if needed
                       </p>
                     </div>
                   </div>
