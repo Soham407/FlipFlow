@@ -37,9 +37,9 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
         try {
           const target = flipbook.target || flipbook;
           const currentMode = target?.pageMode; // 1 = SINGLE, 2 = DOUBLE
-          const isCurrentlySingle = currentMode === 1 || flipbook.options?.pageMode === "single";
+          const isCurrentlySingle = currentMode === 1;
           setIsSinglePage(!!isCurrentlySingle);
-          console.log("✅ Toolbar ready - initial page mode:", isCurrentlySingle ? "single" : "double");
+          console.log("✅ Toolbar ready - initial page mode:", isCurrentlySingle ? "single" : "double", "currentMode:", currentMode);
         } catch (e) {
           console.warn("⚠️ Unable to read initial page mode", e);
         }
@@ -227,22 +227,28 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           } else {
             // Fallback: set pageMode directly and resize
             target.pageMode = newSingle ? 1 : 2;
+            
+            // Try multiple methods to force refresh
             if (typeof flipbook.resize === "function") {
               flipbook.resize();
-            } else if (typeof target.resize === "function") {
+            }
+            if (typeof target.resize === "function") {
               target.resize();
-            } else if (typeof flipbook.refresh === "function") {
+            }
+            if (typeof target.refresh === "function") {
+              target.refresh();
+            }
+            if (typeof flipbook.refresh === "function") {
               flipbook.refresh();
-            } else if (typeof flipbook.updateBook === "function") {
-              flipbook.updateBook();
             }
           }
 
           setIsSinglePage(newSingle);
-          console.log("✅ Page mode toggled to:", newSingle ? "single" : "double");
+          console.log("✅ Page mode toggled to:", newSingle ? "single" : "double", "pageMode:", target.pageMode);
           toast.success(`Switched to ${newSingle ? "single" : "double"} page mode`);
         } catch (e) {
           console.error("Error toggling page mode", e);
+          toast.error("Failed to toggle page mode");
         }
         break;
       }

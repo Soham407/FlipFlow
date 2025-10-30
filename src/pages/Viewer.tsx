@@ -3,7 +3,9 @@ import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Loader2, Share2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ArrowLeft, Loader2, Share2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import ViewerToolbar from "../components/ViewerToolbar";
 
@@ -33,9 +35,13 @@ const Viewer = () => {
   const [scriptsReady, setScriptsReady] = useState(false);
   const [pdfLoadingProgress, setPdfLoadingProgress] = useState(0);
   const [isPdfReady, setIsPdfReady] = useState(false);
+  const [scriptError, setScriptError] = useState(false);
 
   // Check if all scripts are loaded
   useEffect(() => {
+    let retryCount = 0;
+    const maxRetries = 50; // 5 seconds total
+    
     const checkScripts = () => {
       if (
         typeof window.$ !== 'undefined' &&
@@ -43,8 +49,13 @@ const Viewer = () => {
         typeof window.getLastPage === 'function'
       ) {
         setScriptsReady(true);
-      } else {
+        setScriptError(false);
+      } else if (retryCount < maxRetries) {
+        retryCount++;
         setTimeout(checkScripts, 100);
+      } else {
+        console.error("Scripts failed to load after maximum retries");
+        setScriptError(true);
       }
     };
     
@@ -138,17 +149,38 @@ const Viewer = () => {
     }
   }, [scriptsReady, publicUrl, flipbook]);
 
-  // Show loading state
+  // Show error state
+  if (scriptError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error Loading Viewer</AlertTitle>
+          <AlertDescription>
+            The document viewer failed to load. Please refresh the page or try again later.
+          </AlertDescription>
+          <Button asChild className="mt-4" variant="outline">
+            <Link to="/dashboard">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Dashboard
+            </Link>
+          </Button>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Show loading state with skeleton
   if (loading || !scriptsReady || !flipbook || !publicUrl) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">
-            {loading ? 'Loading flipbook...' : 
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
+        <div className="text-center w-full max-w-4xl">
+          <Skeleton className="w-full h-[80vh] mb-4 rounded-lg" />
+          <p className="text-sm text-muted-foreground">
+            {loading ? 'Loading flipbook data...' : 
              !scriptsReady ? 'Loading PDF viewer...' :
-             !flipbook ? 'Loading flipbook data...' :
-             'Preparing PDF...'}
+             !flipbook ? 'Preparing flipbook...' :
+             'Loading PDF file...'}
           </p>
         </div>
       </div>
