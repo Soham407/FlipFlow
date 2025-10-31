@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Share2, RectangleHorizontal, Fullscreen } from "lucide-react";
+import { Share2, RectangleHorizontal, Fullscreen, Copy } from "lucide-react";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -250,6 +250,25 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
     });
   };
 
+  // Copy embeddable iframe code for the current flipbook
+  const handleCopyEmbed = () => {
+    try {
+      const loc = new URL(window.location.href);
+      // ensure current page is included for deep-linking
+      if (Number.isFinite(currentPage) && currentPage > 0) {
+        loc.searchParams.set("page", String(currentPage));
+      }
+      const iframe = `<iframe src="${loc.toString()}" style="width:100%;height:600px;border:0;" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
+      navigator.clipboard.writeText(iframe).then(() => {
+        toast.success("Embed code copied");
+      }).catch(() => {
+        toast.error("Failed to copy embed code");
+      });
+    } catch (e) {
+      toast.error("Failed to generate embed code");
+    }
+  };
+
   // Separate function to execute the actual action
   const executeAction = (action: string, flipbook: any) => {
     switch (action) {
@@ -483,6 +502,10 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           <DropdownMenuItem onClick={() => triggerDFlipAction("togglePageMode")}>
             <RectangleHorizontal className="w-4 h-4 mr-2" />
             <span>{isSinglePage ? "Show Double Page" : "Show Single Page"}</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleCopyEmbed}>
+            <Copy className="w-4 h-4 mr-2" />
+            <span>Copy embed iframe</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
