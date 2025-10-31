@@ -101,6 +101,52 @@ export type Database = {
         }
         Relationships: []
       }
+      flipbook_views: {
+        Row: {
+          id: string;
+          flipbook_id: string;
+          user_id: string | null;
+          viewed_at: string;
+          ip_address: string | null;
+          user_agent: string | null;
+          session_id: string | null;
+          time_spent_seconds: number | null;
+        };
+        Insert: {
+          id?: string;
+          flipbook_id: string;
+          user_id?: string | null;
+          viewed_at?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          session_id?: string | null;
+          time_spent_seconds?: number | null;
+        };
+        Update: {
+          id?: string;
+          flipbook_id?: string;
+          user_id?: string | null;
+          viewed_at?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          session_id?: string | null;
+          time_spent_seconds?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "flipbook_views_flipbook_id_fkey";
+            columns: ["flipbook_id"];
+            referencedRelation: "flipbooks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "flipbook_views_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      },
     }
     Views: {
       [_ in never]: never
