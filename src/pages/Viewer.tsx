@@ -27,6 +27,7 @@ interface Flipbook {
   id: string;
   title: string;
   file_path: string;
+  is_public?: boolean;
 }
 
 const Viewer = () => {
@@ -223,11 +224,24 @@ const Viewer = () => {
         size="sm"
         className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 text-xs sm:text-sm"
         title="Share"
-        onClick={() => {
-          const url = window.location.href;
-          navigator.clipboard.writeText(url)
-            .then(() => toast.success("Link copied to clipboard!"))
-            .catch(() => toast.error("Failed to copy link"));
+        onClick={async () => {
+          try {
+            // Ensure this flipbook is marked public for anonymous viewing
+            if (id && !flipbook?.is_public) {
+              const { error } = await supabase
+                .from('flipbooks')
+                .update({ is_public: true })
+                .eq('id', id as string);
+              if (error) throw error;
+              setFlipbook(prev => prev ? { ...prev, is_public: true } : prev);
+            }
+
+            const url = window.location.href;
+            await navigator.clipboard.writeText(url);
+            toast.success("Public link copied to clipboard!");
+          } catch (e) {
+            toast.error("Failed to make public or copy link");
+          }
         }}
       >
         <Share2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
