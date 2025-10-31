@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 
 const iconClass = "w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600";
 const btnClass =
@@ -21,6 +22,9 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
   const [isReady, setIsReady] = useState(false);
   const [isThumbnailVisible, setIsThumbnailVisible] = useState(false);
   const [isSinglePage, setIsSinglePage] = useState(false);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(0);
+  const [inputValue, setInputValue] = useState<string>("1");
 
   // Check if dFlip is ready and sync thumbnail state
   useEffect(() => {
@@ -40,6 +44,17 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           const isCurrentlySingle = currentMode === 1;
           setIsSinglePage(!!isCurrentlySingle);
           console.log("✅ Toolbar ready - initial page mode:", isCurrentlySingle ? "single" : "double", "currentMode:", currentMode);
+
+          // Initialize page state
+          const initialCurrent = target?.currentPage || target?.currentPageNum || flipbook?.currentPage || 1;
+          const initialTotal = target?.totalPages || target?.pageCount || target?.pages?.length || flipbook?.totalPages || 0;
+          if (typeof initialCurrent === "number") {
+            setCurrentPage(initialCurrent);
+            setInputValue(String(initialCurrent));
+          }
+          if (typeof initialTotal === "number") {
+            setTotalPages(initialTotal);
+          }
         } catch (e) {
           console.warn("⚠️ Unable to read initial page mode", e);
         }
@@ -70,6 +85,22 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
                 setIsThumbnailVisible(false);
                 console.log("✅ Thumbnail sidebar closed due to page change");
               }
+
+              // Sync current page from target if available
+              try {
+                const target = flipbook.target || flipbook;
+                const newPage = target?.currentPage || target?.currentPageNum || flipbook?.currentPage;
+                const total = target?.totalPages || target?.pageCount || target?.pages?.length || flipbook?.totalPages;
+                if (typeof newPage === "number") {
+                  setCurrentPage(newPage);
+                  setInputValue(String(newPage));
+                }
+                if (typeof total === "number") {
+                  setTotalPages(total);
+                }
+              } catch (e) {
+                // ignore
+              }
             };
             console.log("✅ Page change listener added to close sidebar");
           }
@@ -91,6 +122,36 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
     // Start checking immediately
     setTimeout(checkReady, 500);
   }, []);
+
+  // Robust page sync: poll current/total pages while ready
+  useEffect(() => {
+    if (!isReady) return;
+    let rafId: number | null = null;
+    let lastPage = currentPage;
+    let lastTotal = totalPages;
+    const tick = () => {
+      try {
+        const flipbook = (window as any).currentFlipbook;
+        const target = flipbook?.target || flipbook;
+        const newPage = target?.currentPage || target?.currentPageNum || flipbook?.currentPage;
+        const newTotal = target?.totalPages || target?.pageCount || target?.pages?.length || flipbook?.totalPages;
+        if (typeof newPage === "number" && newPage !== lastPage) {
+          lastPage = newPage;
+          setCurrentPage(newPage);
+          setInputValue(String(newPage));
+        }
+        if (typeof newTotal === "number" && newTotal !== lastTotal) {
+          lastTotal = newTotal;
+          setTotalPages(newTotal);
+        }
+      } catch {}
+      rafId = window.requestAnimationFrame(tick);
+    };
+    rafId = window.requestAnimationFrame(tick);
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [isReady]);
   // Function to trigger dFlip toolbar actions
   const triggerDFlipAction = (action: string) => {
     if (!isReady) {
@@ -119,6 +180,27 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
     } catch (error) {
       console.error("Error executing action:", action, error);
     }
+  };
+
+  // Helper to call the first available method path on the flipbook object
+  const callMethod = (flipbook: any, methodPaths: string[], args: any[] = []) => {
+    for (const path of methodPaths) {
+      const parts = path.split(".");
+      let ctx: any = flipbook;
+      let fn: any = flipbook;
+      for (let i = 0; i < parts.length; i++) {
+        ctx = fn;
+        fn = fn?.[parts[i]];
+      }
+      if (typeof fn === "function") {
+        try {
+          return fn.apply(ctx, args);
+        } catch (e) {
+          // try next
+        }
+      }
+    }
+    return undefined;
   };
 
   // Function to toggle thumbnail sidebar
@@ -183,6 +265,12 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           console.log("✅ Zoomed out");
         }
         break;
+      case "prevPage":
+        callMethod(flipbook, ["prev", "previous", "api.prevPage", "target.prevPage", "ui.prev"]);
+        break;
+      case "nextPage":
+        callMethod(flipbook, ["next", "api.nextPage", "target.nextPage", "ui.next"]);
+        break;
       case "fitToScreen":
         if (flipbook.target && flipbook.target.fitToScreen) {
           flipbook.target.fitToScreen();
@@ -201,9 +289,24 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
         }
         break;
       case "fullscreen":
-        if (flipbook.switchFullscreen) {
-          flipbook.switchFullscreen();
-          console.log("✅ Fullscreen toggled");
+        // Try dFlip methods first
+        if (callMethod(flipbook, ["switchFullscreen", "ui.fullscreen", "target.switchFullscreen"]) !== undefined) {
+          console.log("✅ Fullscreen toggled via dFlip");
+          break;
+        }
+        // Fallback: use browser Fullscreen API on the container
+        try {
+          const container = document.getElementById("flipbookContainer");
+          const isFs = !!document.fullscreenElement;
+          if (!isFs) {
+            (container as any)?.requestFullscreen?.();
+          } else {
+            (document as any).exitFullscreen?.();
+          }
+          console.log("✅ Fullscreen toggled via Web API");
+        } catch (e) {
+          console.error("Fullscreen not supported", e);
+          toast.error("Fullscreen not supported in this browser");
         }
         break;
       case "grid":
@@ -257,6 +360,18 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
     }
   };
 
+  const handlePageSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isReady) return;
+    const flipbook = (window as any).currentFlipbook;
+    const pageNum = parseInt(inputValue, 10);
+    if (!flipbook || isNaN(pageNum) || pageNum < 1 || (totalPages && pageNum > totalPages)) {
+      setInputValue(String(currentPage));
+      return;
+    }
+    callMethod(flipbook, ["gotoPage", "api.gotoPage", "target.gotoPage"], [pageNum]);
+  };
+
   return (
     <div className={`rounded-[1.5rem] bg-white/80 shadow-xl flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 backdrop-blur-sm ${!isReady ? 'opacity-50 pointer-events-none' : ''}`}>
       {/* Grid Icon */}
@@ -270,6 +385,24 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
         onClick={() => triggerDFlipAction("grid")}
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      </button>
+      {/* Fullscreen */}
+      <button 
+        type="button" 
+        className={btnClass} 
+        title="Fullscreen"
+        onClick={() => triggerDFlipAction("fullscreen")}
+      >
+        <Fullscreen className={iconClass} />
+      </button>
+      {/* Prev Page */}
+      <button 
+        type="button" 
+        className={btnClass} 
+        title="Previous Page"
+        onClick={() => triggerDFlipAction("prevPage")}
+      >
+        <svg className={iconClass} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       {/* Plus/Zoom In Icon */}
       <button 
@@ -288,6 +421,24 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
         onClick={() => triggerDFlipAction("zoomOut")}
       >
         <svg className={iconClass} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      </button>
+      {/* Page Input */}
+      <form onSubmit={handlePageSubmit} className="flex items-center gap-1">
+        <Input
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          className="w-12 h-8 text-center"
+        />
+        <span className="text-xs text-gray-500">/ {totalPages || "?"}</span>
+      </form>
+      {/* Next Page */}
+      <button 
+        type="button" 
+        className={btnClass} 
+        title="Next Page"
+        onClick={() => triggerDFlipAction("nextPage")}
+      >
+        <svg className={iconClass} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
       {/* Fit/Center Icon */}
       <button 
@@ -329,10 +480,6 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="mb-2 w-48" align="end">
-          <DropdownMenuItem onClick={() => triggerDFlipAction("fullscreen")}>
-            <Fullscreen className="w-4 h-4 mr-2" />
-            <span>Toggle Fullscreen</span>
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => triggerDFlipAction("togglePageMode")}>
             <RectangleHorizontal className="w-4 h-4 mr-2" />
             <span>{isSinglePage ? "Show Double Page" : "Show Single Page"}</span>

@@ -8,6 +8,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ArrowLeft, Loader2, Share2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import ViewerToolbar from "../components/ViewerToolbar";
+import MobileViewerToolbar from "../components/MobileViewerToolbar";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // TypeScript declarations for global functions
 declare global {
@@ -29,6 +31,7 @@ interface Flipbook {
 
 const Viewer = () => {
   const { id } = useParams();
+  const isMobile = useIsMobile();
   const [flipbook, setFlipbook] = useState<Flipbook | null>(null);
   const [loading, setLoading] = useState(true);
   const [publicUrl, setPublicUrl] = useState<string | null>(null);
@@ -233,7 +236,11 @@ const Viewer = () => {
       </Button>
       {/* Toolbar Row */}
       <div className="fixed z-20 left-1/2 bottom-4 sm:bottom-6 -translate-x-1/2 w-[calc(100%-1rem)] sm:w-auto max-w-full overflow-x-auto px-2 sm:px-0">
-        <ViewerToolbar pdfUrl={publicUrl} />
+        {isMobile ? (
+          <MobileViewerToolbar pdfUrl={publicUrl || undefined} />
+        ) : (
+          <ViewerToolbar pdfUrl={publicUrl || undefined} />
+        )}
       </div>
 
       {/* PDF Loading Overlay */}
