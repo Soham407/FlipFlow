@@ -71,11 +71,25 @@ const Viewer = () => {
   useEffect(() => {
     const fetchFlipbook = async () => {
       try {
-        const { data, error } = await supabase
-          .from("flipbooks")
-          .select("*")
-          .or(`id.eq.${id},slug.eq.${id}`)
-          .maybeSingle();
+        const routeParam = (id as string) || "";
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(routeParam);
+
+        let data: any = null;
+        let error: any = null;
+
+        if (isUuid) {
+          ({ data, error } = await (supabase as any)
+            .from("flipbooks")
+            .select("*")
+            .eq("id", routeParam)
+            .maybeSingle());
+        } else {
+          ({ data, error } = await (supabase as any)
+            .from("flipbooks")
+            .select("*")
+            .eq("slug", routeParam)
+            .maybeSingle());
+        }
 
         if (error) throw error;
         if (data) {
@@ -228,11 +242,11 @@ const Viewer = () => {
         onClick={async () => {
           try {
             // Ensure this flipbook is marked public for anonymous viewing
-            if (id && !flipbook?.is_public) {
-              const { error } = await supabase
+            if (flipbook?.id && !flipbook?.is_public) {
+              const { error } = await (supabase as any)
                 .from('flipbooks')
-                .update({ is_public: true })
-                .eq('id', id as string);
+                .update({ is_public: true } as any)
+                .eq('id', flipbook.id);
               if (error) throw error;
               setFlipbook(prev => prev ? { ...prev, is_public: true } : prev);
             }
