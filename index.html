@@ -11,6 +11,42 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      (function () {
+        const origAdd = window.addEventListener;
+        const origRemove = window.removeEventListener;
+        window.addEventListener = function (type, listener, options) {
+          if (type === 'unload' || type === 'beforeunload') return;
+          return origAdd.call(this, type, listener, options);
+        };
+        window.removeEventListener = function (type, listener, options) {
+          if (type === 'unload' || type === 'beforeunload') return;
+          return origRemove.call(this, type, listener, options);
+        };
+        try {
+          Object.defineProperty(window, 'onunload', { set() {}, get() { return null; } });
+          Object.defineProperty(window, 'onbeforeunload', { set() {}, get() { return null; } });
+        } catch (_) {}
+        const neuterJq = () => {
+          const $ = window.jQuery;
+          if (!$ || !$.fn || !$.fn.on) return;
+          const origOn = $.fn.on;
+          $.fn.on = function (types, ...rest) {
+            if (typeof types === 'string') {
+              const t = types.split(/\s+/).filter(x => x !== 'unload' && x !== 'beforeunload').join(' ');
+              if (!t) return this;
+              return origOn.call(this, t, ...rest);
+            }
+            return origOn.call(this, types, ...rest);
+          };
+        };
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+          neuterJq();
+        } else {
+          document.addEventListener('DOMContentLoaded', neuterJq, { once: true });
+        }
+      })();
+    </script>
     
     <!-- Load flipbook dependencies in parallel -->
     <script src="/lib/js/libs/jquery.min.js" defer></script>
