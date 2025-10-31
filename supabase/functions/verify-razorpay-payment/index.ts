@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
+    const razorpayKeySecret = Deno.env.get('RAZORPAY_TEST_KEY_SECRET');
     
     if (!razorpayKeySecret) {
       throw new Error('Razorpay secret not configured');
