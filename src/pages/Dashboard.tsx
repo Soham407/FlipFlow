@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Upload, FileText, Eye, Trash2, LogOut, Plus, Crown } from "lucide-react";
+import { Loader2, Upload, FileText, Eye, Trash2, LogOut, Plus, Crown, Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Session } from "@supabase/supabase-js";
 
@@ -16,6 +16,8 @@ interface Flipbook {
   title: string;
   file_path: string;
   created_at: string;
+  slug?: string;
+  is_public?: boolean;
 }
 
 const Dashboard = () => {
@@ -223,6 +225,35 @@ const Dashboard = () => {
       fetchFlipbooks();
     } catch (error: any) {
       toast.error(error.message || "Failed to delete flipbook");
+    }
+  };
+
+  const handleCopyEmbed = async (flipbook: Flipbook) => {
+    try {
+      // Ensure flipbook is public for embedding
+      if (!flipbook.is_public) {
+        const { error } = await supabase
+          .from('flipbooks')
+          .update({ is_public: true })
+          .eq('id', flipbook.id);
+        
+        if (error) throw error;
+        
+        // Update local state
+        setFlipbooks(prev => prev.map(f => 
+          f.id === flipbook.id ? { ...f, is_public: true } : f
+        ));
+      }
+
+      const slugOrId = flipbook.slug || flipbook.id;
+      const base = window.location.origin;
+      const url = `${base}/view/${slugOrId}`;
+      const iframe = `<iframe src="${url}" style="width:100%;height:600px;border:0;" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
+      
+      await navigator.clipboard.writeText(iframe);
+      toast.success("Embed code copied to clipboard!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to copy embed code");
     }
   };
 
@@ -533,6 +564,16 @@ const Dashboard = () => {
                     >
                       <Eye className="h-4 w-4" />
                       View
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => handleCopyEmbed(flipbook)}
+                      title="Copy embed iframe code"
+                    >
+                      <Copy className="h-4 w-4" />
+                      <span className="hidden sm:inline">Embed</span>
                     </Button>
                     <Button
                       variant="outline"
