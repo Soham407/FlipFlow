@@ -17,6 +17,13 @@
   visibility: hidden !important;
 }
 
+/* Hide dFlip loading-info element */
+.loading-info {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
 /* Ensure dFlip container background matches */
 .df-container {
   background-color: transparent !important;

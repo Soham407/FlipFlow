@@ -143,6 +143,26 @@ const Viewer = () => {
     };
   }, []);
 
+  // Hide loading-info element (dFlip internal loader)
+  useEffect(() => {
+    const hideLoadingInfo = () => {
+      const loadingInfoElements = document.querySelectorAll('.loading-info');
+      loadingInfoElements.forEach((el) => {
+        (el as HTMLElement).style.display = 'none';
+        (el as HTMLElement).style.visibility = 'hidden';
+        (el as HTMLElement).style.opacity = '0';
+      });
+    };
+
+    // Hide immediately
+    hideLoadingInfo();
+
+    // Also hide periodically to catch dynamically created elements
+    const interval = setInterval(hideLoadingInfo, 100);
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Initialize flipbook when scripts and data are ready
   useEffect(() => {
     if (scriptsReady && publicUrl && flipbook) {
