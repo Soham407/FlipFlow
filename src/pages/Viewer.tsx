@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ArrowLeft, Loader2, Share2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { trackFlipbookView, trackTimeSpent } from "@/lib/analytics";
 import ViewerToolbar from "../components/ViewerToolbar";
 import MobileViewerToolbar from "../components/MobileViewerToolbar";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -41,6 +42,9 @@ const Viewer = () => {
   const [pdfLoadingProgress, setPdfLoadingProgress] = useState(0);
   const [isPdfReady, setIsPdfReady] = useState(false);
   const [scriptError, setScriptError] = useState(false);
+  const viewTrackedRef = useRef(false);
+  const viewStartTimeRef = useRef<number>(Date.now());
+  const sessionIdRef = useRef<string>(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 
   // Check if all scripts are loaded
   useEffect(() => {
@@ -162,6 +166,107 @@ const Viewer = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Track view when flipbook is loaded
+  useEffect(() => {
+    const trackView = async () => {
+      if (!flipbook?.id || viewTrackedRef.current) return;
+      
+      viewTrackedRef.current = true;
+      viewStartTimeRef.current = Date.now();
+
+      try {
+        // Get current user session
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id || null;
+
+        // Get IP address and user agent
+        const userAgent = navigator.userAgent;
+        
+        // Track in Supabase
+        const { error: viewError } = await supabase
+          .from('flipbook_views')
+          .insert({
+            flipbook_id: flipbook.id,
+            user_id: userId,
+            ip_address: null, // IP should be captured server-side for security
+            user_agent: userAgent,
+            session_id: sessionIdRef.current,
+          });
+
+        if (viewError) {
+          console.error('Failed to track view:', viewError);
+        }
+
+        // Track in Google Analytics
+        trackFlipbookView(flipbook.id, flipbook.title);
+      } catch (error) {
+        console.error('Error tracking view:', error);
+      }
+    };
+
+    if (flipbook && scriptsReady) {
+      trackView();
+    }
+  }, [flipbook, scriptsReady]);
+
+  // Track time spent when user leaves
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (flipbook?.id && viewTrackedRef.current) {
+        const timeSpent = Math.floor((Date.now() - viewStartTimeRef.current) / 1000);
+        if (timeSpent > 0) {
+          // Track time spent (fire and forget)
+          trackTimeSpent(flipbook.id, timeSpent);
+          
+          // Update view record with time spent
+          supabase
+            .from('flipbook_views')
+            .update({ time_spent_seconds: timeSpent })
+            .eq('flipbook_id', flipbook.id)
+            .eq('session_id', sessionIdRef.current)
+            .then(({ error }) => {
+              if (error) console.error('Failed to update time spent:', error);
+            });
+        }
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && flipbook?.id && viewTrackedRef.current) {
+        const timeSpent = Math.floor((Date.now() - viewStartTimeRef.current) / 1000);
+        if (timeSpent > 0) {
+          trackTimeSpent(flipbook.id, timeSpent);
+        }
+      } else if (!document.hidden) {
+        viewStartTimeRef.current = Date.now();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Final time spent update
+      if (flipbook?.id && viewTrackedRef.current) {
+        const timeSpent = Math.floor((Date.now() - viewStartTimeRef.current) / 1000);
+        if (timeSpent > 0) {
+          trackTimeSpent(flipbook.id, timeSpent);
+          supabase
+            .from('flipbook_views')
+            .update({ time_spent_seconds: timeSpent })
+            .eq('flipbook_id', flipbook.id)
+            .eq('session_id', sessionIdRef.current)
+            .then(({ error }) => {
+              if (error) console.error('Failed to update time spent:', error);
+            });
+        }
+      }
+    };
+  }, [flipbook]);
 
   // Initialize flipbook when scripts and data are ready
   useEffect(() => {

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Upload, FileText, Eye, Trash2, LogOut, Plus, Crown, Copy } from "lucide-react";
+import { Loader2, Upload, FileText, Eye, Trash2, LogOut, Plus, Crown, Copy, BarChart2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Session } from "@supabase/supabase-js";
 
@@ -574,6 +574,16 @@ const Dashboard = () => {
                     >
                       <Copy className="h-4 w-4" />
                       <span className="hidden sm:inline">Embed</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => navigate(`/analytics/${flipbook.id}`)}
+                      title="View analytics for this flipbook"
+                    >
+                      <BarChart2 className="h-4 w-4" />
+                      <span className="hidden sm:inline">Analytics</span>
                     </Button>
                     <Button
                       variant="outline"
