@@ -28,6 +28,7 @@ interface Flipbook {
   title: string;
   file_path: string;
   is_public?: boolean;
+  slug?: string;
 }
 
 const Viewer = () => {
@@ -73,7 +74,7 @@ const Viewer = () => {
         const { data, error } = await supabase
           .from("flipbooks")
           .select("*")
-          .eq("id", id as string)
+          .or(`id.eq.${id},slug.eq.${id}`)
           .maybeSingle();
 
         if (error) throw error;
@@ -236,7 +237,9 @@ const Viewer = () => {
               setFlipbook(prev => prev ? { ...prev, is_public: true } : prev);
             }
 
-            const url = window.location.href;
+            const slugOrId = flipbook?.slug || id;
+            const base = window.location.origin;
+            const url = `${base}/view/${slugOrId}`;
             await navigator.clipboard.writeText(url);
             toast.success("Public link copied to clipboard!");
           } catch (e) {
