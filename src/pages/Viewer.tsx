@@ -17,10 +17,11 @@ declare global {
   interface Window {
     $: any;
     jQuery: any;
-    loadFlipbook: (url: string, isSinglePage: boolean, page: number, pdfId: string) => void;
+    loadFlipbook: (url: string, rtlMode: boolean, page: number, pdfId: string) => void;
     getLastPage: (pdfId: string) => Promise<number>;
     onPdfProgress?: (progress: number) => void;
     onPdfReady?: () => void;
+    isMobileDevice?: boolean;
   }
 }
 
@@ -277,18 +278,19 @@ const Viewer = () => {
       setTimeout(() => {
         console.log('✅ Initializing flipbook...');
         
+        // Pass mobile state to load.js
+        window.isMobileDevice = isMobile;
+        
         const urlParams = new URLSearchParams(window.location.search);
         const pageFromUrl = parseInt(urlParams.get('page') || 'NaN', 10);
         
         const pdfId = flipbook.id || publicUrl;
-        // Default single-page on mobile, double-page elsewhere
-        const defaultSinglePage = isMobile;
 
         if (!isNaN(pageFromUrl)) {
-          window.loadFlipbook(publicUrl, defaultSinglePage, pageFromUrl, pdfId);
+          window.loadFlipbook(publicUrl, false, pageFromUrl, pdfId);
         } else {
           window.getLastPage(pdfId).then((storedPage: number) => {
-            window.loadFlipbook(publicUrl, defaultSinglePage, storedPage || 1, pdfId);
+            window.loadFlipbook(publicUrl, false, storedPage || 1, pdfId);
           });
         }
       }, 0);
