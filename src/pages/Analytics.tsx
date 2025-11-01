@@ -40,7 +40,7 @@ const Analytics = () => {
   const [flipbookTitle, setFlipbookTitle] = useState<string>("");
   const [dateRange, setDateRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
 
-  // Fetch view data from Supabase
+  // Fetch view data from Supabase with date range filtering
   useEffect(() => {
     const fetchViews = async () => {
       setLoading(true);
@@ -50,12 +50,21 @@ const Analytics = () => {
         if (bookErr) throw bookErr;
         setFlipbookTitle(bookData?.title || "Flipbook");
 
-        // Fetch views/events
-        const { data, error } = await supabase
+        // Build query with date range filter
+        let query = supabase
           .from("flipbook_views")
           .select("*")
-          .eq("flipbook_id", id)
-          .order("viewed_at", { ascending: true });
+          .eq("flipbook_id", id);
+        if (dateRange.start) {
+          query = query.gte("viewed_at", dateRange.start);
+        }
+        if (dateRange.end) {
+          // Cover the entire day for the end date
+          query = query.lte("viewed_at", dateRange.end + " 23:59:59");
+        }
+        query = query.order("viewed_at", { ascending: true });
+
+        const { data, error } = await query;
         if (error) throw error;
         setViews(data || []);
       } catch (err: any) {
@@ -66,42 +75,32 @@ const Analytics = () => {
       }
     };
     if (id) fetchViews();
-  }, [id]);
+  }, [id, dateRange]);
 
-  // Filtered views by date range
-  const filteredViews = useMemo(() => {
-    if (!dateRange.start && !dateRange.end) return views;
-    return views.filter(v => {
-      if (dateRange.start && v.viewed_at < dateRange.start) return false;
-      if (dateRange.end && v.viewed_at > dateRange.end) return false;
-      return true;
-    });
-  }, [views, dateRange]);
-
-  // Stats cards
-  const totalViews = filteredViews.length;
+  // Stats calculations based on fetched (already filtered) views
+  const totalViews = views.length;
   const uniqueUsers = useMemo(() => {
-    const set = new Set(filteredViews.map(v => v.user_id || v.session_id));
+    const set = new Set(views.map(v => v.user_id || v.session_id));
     return set.size;
-  }, [filteredViews]);
+  }, [views]);
   const avgTimeSpent = useMemo(() => {
-    const viewsWithTime = filteredViews.filter(
+    const viewsWithTime = views.filter(
       (v) => v.time_spent_seconds && v.time_spent_seconds > 0
     );
     if (viewsWithTime.length === 0) return 0;
     const total = viewsWithTime.reduce((acc, v) => acc + (v.time_spent_seconds || 0), 0);
     return Math.round(total / viewsWithTime.length);
-  }, [filteredViews]);
+  }, [views]);
 
   // Chart data: views by date
   const viewsByDate = useMemo(() => {
     const map: Record<string, number> = {};
-    filteredViews.forEach(v => {
+    views.forEach(v => {
       const date = v.viewed_at.slice(0, 10);
       map[date] = (map[date] || 0) + 1;
     });
     return Object.entries(map).map(([date, count]) => ({ date, count }));
-  }, [filteredViews]);
+  }, [views]);
 
   return (
     <div className="min-h-screen bg-background/90 pt-8">
@@ -141,9 +140,9 @@ const Analytics = () => {
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="range"
-                selected={{ 
-                  from: dateRange.start ? new Date(dateRange.start) : undefined, 
-                  to: dateRange.end ? new Date(dateRange.end) : undefined 
+                selected={{
+                  from: dateRange.start ? new Date(dateRange.start) : undefined,
+                  to: dateRange.end ? new Date(dateRange.end) : undefined
                 }}
                 onSelect={(range) => {
                   setDateRange({
@@ -157,9 +156,9 @@ const Analytics = () => {
             </PopoverContent>
           </Popover>
           {(dateRange.start || dateRange.end) && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="ml-2"
               onClick={() => setDateRange({ start: null, end: null })}
             >
