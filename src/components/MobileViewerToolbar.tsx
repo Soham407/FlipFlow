@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
+import { toast } from "sonner";
 
 interface MobileViewerToolbarProps {
   pdfUrl?: string;
@@ -11,6 +12,7 @@ const MobileViewerToolbar: React.FC<MobileViewerToolbarProps> = ({ pdfUrl }) => 
   const [isReady, setIsReady] = useState(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(0);
+  const [isSinglePage, setIsSinglePage] = useState(false);
 
   useEffect(() => {
     let retries = 0;
@@ -23,8 +25,10 @@ const MobileViewerToolbar: React.FC<MobileViewerToolbarProps> = ({ pdfUrl }) => 
           const target = flipbook.target || flipbook;
           const cp = target?.currentPage || target?.currentPageNum || flipbook?.currentPage || 1;
           const tp = target?.totalPages || target?.pageCount || target?.pages?.length || flipbook?.totalPages || 0;
+          const pm = target?.pageMode; // 1 = single, 2 = double
           setCurrentPage(typeof cp === "number" ? cp : 1);
           setTotalPages(typeof tp === "number" ? tp : 0);
+          setIsSinglePage(pm === 1);
 
           if (flipbook.target && flipbook.target.updatePageCallback) {
             const original = flipbook.target.updatePageCallback;
@@ -34,8 +38,10 @@ const MobileViewerToolbar: React.FC<MobileViewerToolbarProps> = ({ pdfUrl }) => 
                 const target = flipbook.target || flipbook;
                 const np = target?.currentPage || target?.currentPageNum || flipbook?.currentPage;
                 const tp2 = target?.totalPages || target?.pageCount || target?.pages?.length || flipbook?.totalPages;
+                const pm2 = target?.pageMode;
                 if (typeof np === "number") setCurrentPage(np);
                 if (typeof tp2 === "number") setTotalPages(tp2);
+                if (typeof pm2 === "number") setIsSinglePage(pm2 === 1);
               } catch {}
             };
           }
@@ -95,7 +101,19 @@ const MobileViewerToolbar: React.FC<MobileViewerToolbarProps> = ({ pdfUrl }) => 
     return undefined;
   };
 
-  const doAction = (action: "prev" | "next" | "zoomIn" | "zoomOut" | "fullscreen" | "grid") => {
+  const doAction = (
+    action:
+      | "prev"
+      | "next"
+      | "zoomIn"
+      | "zoomOut"
+      | "fullscreen"
+      | "grid"
+      | "fitToScreen"
+      | "togglePageMode"
+      | "share"
+      | "gotoPage"
+  ) => {
     if (!isReady) return;
     const flipbook = (window as any).currentFlipbook;
     if (!flipbook) return;
@@ -137,6 +155,48 @@ const MobileViewerToolbar: React.FC<MobileViewerToolbarProps> = ({ pdfUrl }) => 
           }
         }
         break;
+      case "fitToScreen":
+        if (flipbook.target?.fitToScreen) {
+          flipbook.target.fitToScreen();
+        }
+        break;
+      case "togglePageMode": {
+        const target = flipbook.target || flipbook;
+        const currentlySingle = target?.pageMode === 1;
+        const newSingle = !currentlySingle;
+        try {
+          if (flipbook.ui?.setPageMode) {
+            flipbook.ui.setPageMode(newSingle);
+          } else {
+            target.pageMode = newSingle ? 1 : 2;
+            if (typeof flipbook.resize === "function") flipbook.resize();
+            if (typeof target.resize === "function") target.resize();
+            if (typeof target.refresh === "function") target.refresh();
+            if (typeof flipbook.refresh === "function") flipbook.refresh();
+          }
+          setIsSinglePage(newSingle);
+          toast.success(`Switched to ${newSingle ? "single" : "double"} page mode`);
+        } catch {}
+        break;
+      }
+      case "share": {
+        const url = window.location.href;
+        navigator.clipboard
+          .writeText(url)
+          .then(() => toast.success("Link copied to clipboard!"))
+          .catch(() => toast.error("Failed to copy link"));
+        break;
+      }
+      case "gotoPage": {
+        const input = window.prompt("Go to page #", String(currentPage));
+        const pageNum = input ? parseInt(input, 10) : NaN;
+        if (!isNaN(pageNum) && pageNum >= 1 && (!totalPages || pageNum <= totalPages)) {
+          callMethod(flipbook, ["gotoPage", "api.gotoPage", "target.gotoPage"], [pageNum]);
+        } else if (input) {
+          toast.error("Invalid page number");
+        }
+        break;
+      }
     }
   };
 
@@ -164,8 +224,14 @@ const MobileViewerToolbar: React.FC<MobileViewerToolbarProps> = ({ pdfUrl }) => 
           <div className="grid grid-cols-2 gap-3">
             <Button onClick={() => doAction("zoomIn")} variant="secondary">Zoom In</Button>
             <Button onClick={() => doAction("zoomOut")} variant="secondary">Zoom Out</Button>
+            <Button onClick={() => doAction("fitToScreen")} variant="secondary">Fit to Screen</Button>
             <Button onClick={() => doAction("fullscreen")} variant="secondary">Fullscreen</Button>
             <Button onClick={() => doAction("grid")} variant="secondary">Thumbnails</Button>
+            <Button onClick={() => doAction("togglePageMode")} variant="secondary">
+              {isSinglePage ? "Show Double Page" : "Show Single Page"}
+            </Button>
+            <Button onClick={() => doAction("gotoPage")} variant="secondary">Go to Page…</Button>
+            <Button onClick={() => doAction("share")} variant="secondary">Share Link</Button>
             {pdfUrl && (
               <a href={pdfUrl} download className="col-span-2">
                 <Button className="w-full" variant="outline">Download</Button>
