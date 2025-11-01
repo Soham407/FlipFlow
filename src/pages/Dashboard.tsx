@@ -234,7 +234,7 @@ const Dashboard = () => {
       if (!flipbook.is_public) {
         const { error } = await supabase
           .from('flipbooks')
-          .update({ is_public: true })
+          .update({ is_public: true } as any)
           .eq('id', flipbook.id);
         
         if (error) throw error;

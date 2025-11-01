@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, BarChart2, ArrowLeft } from "lucide-react";
+import { Loader2, BarChart2, ArrowLeft, Calendar as CalendarIcon } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -14,6 +14,10 @@ import {
   ResponsiveContainer
 } from "recharts";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 interface ViewEvent {
   id: string;
@@ -31,6 +35,7 @@ const Analytics = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [views, setViews] = useState<ViewEvent[]>([]);
   const [flipbookTitle, setFlipbookTitle] = useState<string>("");
   const [dateRange, setDateRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
@@ -55,6 +60,7 @@ const Analytics = () => {
         setViews(data || []);
       } catch (err: any) {
         toast.error("Failed to load analytics");
+        setError("Could not load analytics data. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -79,9 +85,12 @@ const Analytics = () => {
     return set.size;
   }, [filteredViews]);
   const avgTimeSpent = useMemo(() => {
-    if (filteredViews.length === 0) return 0;
-    const total = filteredViews.reduce((acc, v) => acc + (v.time_spent_seconds || 0), 0);
-    return Math.round(total / filteredViews.length);
+    const viewsWithTime = filteredViews.filter(
+      (v) => v.time_spent_seconds && v.time_spent_seconds > 0
+    );
+    if (viewsWithTime.length === 0) return 0;
+    const total = viewsWithTime.reduce((acc, v) => acc + (v.time_spent_seconds || 0), 0);
+    return Math.round(total / viewsWithTime.length);
   }, [filteredViews]);
 
   // Chart data: views by date
@@ -97,10 +106,8 @@ const Analytics = () => {
   return (
     <div className="min-h-screen bg-background/90 pt-8">
       <div className="container mx-auto max-w-3xl">
-        <Button asChild variant="outline" size="sm" className="mb-3" onClick={() => navigate(-1)}>
-          <Link to="/dashboard">
-            <ArrowLeft className="mr-1" /> Dashboard
-          </Link>
+        <Button variant="outline" size="sm" className="mb-3" onClick={() => navigate(-1)}>
+          <ArrowLeft className="mr-1" /> Back
         </Button>
 
         <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
@@ -108,13 +115,77 @@ const Analytics = () => {
           Analytics: <span className="ml-1 text-primary">{flipbookTitle}</span>
         </h1>
         <div className="mb-6 text-muted-foreground text-sm">
-          Track how your flipbook is performing. (GA4 stats shown below are placeholders)
+          Track how your flipbook is performing.
+        </div>
+
+        <div className="mb-6">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-[280px] justify-start text-left font-normal",
+                  !dateRange.start && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange.start && dateRange.end ? (
+                  <>
+                    {format(new Date(dateRange.start), "LLL dd, y")} - {format(new Date(dateRange.end), "LLL dd, y")}
+                  </>
+                ) : (
+                  <span>Pick a date range</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                selected={{ 
+                  from: dateRange.start ? new Date(dateRange.start) : undefined, 
+                  to: dateRange.end ? new Date(dateRange.end) : undefined 
+                }}
+                onSelect={(range) => {
+                  setDateRange({
+                    start: range?.from ? format(range.from, "yyyy-MM-dd") : null,
+                    end: range?.to ? format(range.to, "yyyy-MM-dd") : null,
+                  });
+                }}
+                numberOfMonths={2}
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+          {(dateRange.start || dateRange.end) && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="ml-2"
+              onClick={() => setDateRange({ start: null, end: null })}
+            >
+              Clear
+            </Button>
+          )}
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
+        ) : error ? (
+          <Card className="border-2">
+            <CardContent className="pt-6">
+              <p className="text-center text-destructive">{error}</p>
+            </CardContent>
+          </Card>
+        ) : views.length === 0 ? (
+          <Card className="border-2">
+            <CardContent className="pt-6">
+              <p className="text-center text-muted-foreground">
+                No analytics data recorded for this flipbook yet.
+              </p>
+            </CardContent>
+          </Card>
         ) : (
           <>
             <div className="grid md:grid-cols-3 gap-5 mb-8">
@@ -163,18 +234,6 @@ const Analytics = () => {
                     <Area type="monotone" dataKey="count" stroke="#3b82f6" fillOpacity={1} fill="url(#colorViews)" />
                   </AreaChart>
                 </ResponsiveContainer>
-              </CardContent>
-            </Card>
-            {/* Placeholders for more detailed stats */}
-            <Card className="border-2">
-              <CardHeader>
-                <CardTitle>Advanced Analytics (Google Analytics 4)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-muted-foreground text-sm">
-                  For geo, referrer, device, and retention stats, connect your GA4 property and check the GA4 dashboard.<br />
-                  (This section can be expanded once the GA4 API fetch is integrated.)
-                </div>
               </CardContent>
             </Card>
           </>
