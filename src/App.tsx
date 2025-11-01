@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
 import Viewer from "./pages/Viewer";
 import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
@@ -40,6 +41,7 @@ const App = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/view/:id" element={<Viewer />} />
             <Route path="/analytics/:id" element={<Analytics />} />
