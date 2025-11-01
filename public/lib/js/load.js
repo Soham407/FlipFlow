@@ -30,12 +30,16 @@ function loadFlipbook(pdfUrl, rtlMode, page, pdfId) {
     xhr.send();
     
     function initializeFlipbook(url, isRTL, page, pdfId) {
-    // Prefer single page by default on small screens (mobile)
-    var isSmallScreen = false;
-    try {
-        isSmallScreen = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
-    } catch (e) {
-        isSmallScreen = (window.innerWidth || 0) <= 640;
+    // Use React-provided mobile state (768px breakpoint) or fallback to 640px
+    var isMobileDevice = false;
+    if (typeof window.isMobileDevice !== 'undefined') {
+        isMobileDevice = window.isMobileDevice;
+    } else {
+        try {
+            isMobileDevice = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+        } catch (e) {
+            isMobileDevice = (window.innerWidth || 0) < 768;
+        }
     }
 
     var options = {
@@ -46,7 +50,7 @@ function loadFlipbook(pdfUrl, rtlMode, page, pdfId) {
         
         // --- ADD THESE CONTROL OPTIONS ---
         allControls: "thumbnail",     // Enable thumbnail controls (was "none")
-        pageMode: isSmallScreen ? "single" : "double", // Default single on mobile
+        pageMode: isMobileDevice ? 1 : 2, // 1=single on mobile, 2=double on desktop
         enableSounds: true,            // Page turn sounds
         webgl: true,                  // 3D page-turning effects
         controlsPosition: "none",     // No built-in toolbar (we use custom React toolbar)
