@@ -281,17 +281,19 @@ const Viewer = () => {
         const pageFromUrl = parseInt(urlParams.get('page') || 'NaN', 10);
         
         const pdfId = flipbook.id || publicUrl;
+        // Default single-page on mobile, double-page elsewhere
+        const defaultSinglePage = isMobile;
 
         if (!isNaN(pageFromUrl)) {
-          window.loadFlipbook(publicUrl, false, pageFromUrl, pdfId);
+          window.loadFlipbook(publicUrl, defaultSinglePage, pageFromUrl, pdfId);
         } else {
           window.getLastPage(pdfId).then((storedPage: number) => {
-            window.loadFlipbook(publicUrl, false, storedPage || 1, pdfId);
+            window.loadFlipbook(publicUrl, defaultSinglePage, storedPage || 1, pdfId);
           });
         }
       }, 0);
     }
-  }, [scriptsReady, publicUrl, flipbook]);
+  }, [scriptsReady, publicUrl, flipbook, isMobile]);
 
   // Show error state
   if (scriptError) {

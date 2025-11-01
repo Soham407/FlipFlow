@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MobileViewerToolbarProps {
   pdfUrl?: string;
@@ -13,6 +14,8 @@ const MobileViewerToolbar: React.FC<MobileViewerToolbarProps> = ({ pdfUrl }) => 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(0);
   const [isSinglePage, setIsSinglePage] = useState(false);
+  const isMobile = useIsMobile();
+  const appliedDefaultRef = useRef(false);
 
   useEffect(() => {
     let retries = 0;
@@ -82,6 +85,36 @@ const MobileViewerToolbar: React.FC<MobileViewerToolbarProps> = ({ pdfUrl }) => 
       if (rafId) cancelAnimationFrame(rafId);
     };
   }, [isReady]);
+
+  // Apply default page mode once: single on mobile, double elsewhere
+  useEffect(() => {
+    if (!isReady || appliedDefaultRef.current) return;
+    const flipbook = (window as any).currentFlipbook;
+    if (!flipbook) return;
+
+    try {
+      const target = flipbook.target || flipbook;
+      const desiredSingle = !!isMobile; // true on mobile, false otherwise
+      const currentSingle = target?.pageMode === 1;
+
+      if (currentSingle !== desiredSingle) {
+        if (flipbook.ui?.setPageMode) {
+          flipbook.ui.setPageMode(desiredSingle);
+        } else {
+          target.pageMode = desiredSingle ? 1 : 2;
+          if (typeof target.resize === "function") target.resize();
+          if (typeof flipbook.resize === "function") flipbook.resize();
+          if (typeof target.refresh === "function") target.refresh();
+          if (typeof flipbook.refresh === "function") flipbook.refresh();
+        }
+      }
+
+      setIsSinglePage(desiredSingle);
+      appliedDefaultRef.current = true;
+    } catch {
+      // no-op
+    }
+  }, [isReady, isMobile]);
 
   const callMethod = (flipbook: any, methodPaths: string[], args: any[] = []) => {
     for (const path of methodPaths) {
