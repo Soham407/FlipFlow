@@ -14,12 +14,55 @@ export type Database = {
   }
   public: {
     Tables: {
+      flipbook_views: {
+        Row: {
+          flipbook_id: string
+          id: string
+          ip_address: string | null
+          session_id: string | null
+          time_spent_seconds: number | null
+          user_agent: string | null
+          user_id: string | null
+          viewed_at: string
+        }
+        Insert: {
+          flipbook_id: string
+          id?: string
+          ip_address?: string | null
+          session_id?: string | null
+          time_spent_seconds?: number | null
+          user_agent?: string | null
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          flipbook_id?: string
+          id?: string
+          ip_address?: string | null
+          session_id?: string | null
+          time_spent_seconds?: number | null
+          user_agent?: string | null
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flipbook_views_flipbook_id_fkey"
+            columns: ["flipbook_id"]
+            isOneToOne: false
+            referencedRelation: "flipbooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flipbooks: {
         Row: {
           created_at: string
           file_path: string
           file_size: number | null
           id: string
+          is_public: boolean
+          slug: string | null
           title: string
           user_id: string
         }
@@ -28,6 +71,8 @@ export type Database = {
           file_path: string
           file_size?: number | null
           id?: string
+          is_public?: boolean
+          slug?: string | null
           title: string
           user_id: string
         }
@@ -36,7 +81,39 @@ export type Database = {
           file_path?: string
           file_size?: number | null
           id?: string
+          is_public?: boolean
+          slug?: string | null
           title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -101,52 +178,6 @@ export type Database = {
         }
         Relationships: []
       }
-      flipbook_views: {
-        Row: {
-          id: string;
-          flipbook_id: string;
-          user_id: string | null;
-          viewed_at: string;
-          ip_address: string | null;
-          user_agent: string | null;
-          session_id: string | null;
-          time_spent_seconds: number | null;
-        };
-        Insert: {
-          id?: string;
-          flipbook_id: string;
-          user_id?: string | null;
-          viewed_at?: string;
-          ip_address?: string | null;
-          user_agent?: string | null;
-          session_id?: string | null;
-          time_spent_seconds?: number | null;
-        };
-        Update: {
-          id?: string;
-          flipbook_id?: string;
-          user_id?: string | null;
-          viewed_at?: string;
-          ip_address?: string | null;
-          user_agent?: string | null;
-          session_id?: string | null;
-          time_spent_seconds?: number | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "flipbook_views_flipbook_id_fkey";
-            columns: ["flipbook_id"];
-            referencedRelation: "flipbooks";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "flipbook_views_user_id_fkey";
-            columns: ["user_id"];
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          }
-        ];
-      },
     }
     Views: {
       [_ in never]: never
@@ -167,6 +198,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      slugify: { Args: { txt: string }; Returns: string }
     }
     Enums: {
       app_role: "free" | "pro"
