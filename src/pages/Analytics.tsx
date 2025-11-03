@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, BarChart2, ArrowLeft, Calendar as CalendarIcon } from "lucide-react";
+import { Loader2, BarChart2, ArrowLeft } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -14,10 +14,6 @@ import {
   ResponsiveContainer
 } from "recharts";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 
 interface ViewEvent {
   id: string;
@@ -38,7 +34,6 @@ const Analytics = () => {
   const [error, setError] = useState<string | null>(null);
   const [views, setViews] = useState<ViewEvent[]>([]);
   const [flipbookTitle, setFlipbookTitle] = useState<string>("");
-  const [dateRange, setDateRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
 
   // Fetch view data from Supabase with date range filtering
   useEffect(() => {
@@ -50,21 +45,12 @@ const Analytics = () => {
         if (bookErr) throw bookErr;
         setFlipbookTitle(bookData?.title || "Flipbook");
 
-        // Build query with date range filter
-        let query = supabase
+        // Fetch all views
+        const { data, error } = await supabase
           .from("flipbook_views")
           .select("*")
-          .eq("flipbook_id", id);
-        if (dateRange.start) {
-          query = query.gte("viewed_at", dateRange.start);
-        }
-        if (dateRange.end) {
-          // Cover the entire day for the end date
-          query = query.lte("viewed_at", dateRange.end + " 23:59:59");
-        }
-        query = query.order("viewed_at", { ascending: true });
-
-        const { data, error } = await query;
+          .eq("flipbook_id", id)
+          .order("viewed_at", { ascending: true });
         if (error) throw error;
         setViews(data || []);
       } catch (err: any) {
@@ -75,7 +61,7 @@ const Analytics = () => {
       }
     };
     if (id) fetchViews();
-  }, [id, dateRange]);
+  }, [id]);
 
   // Stats calculations based on fetched (already filtered) views
   const totalViews = views.length;
@@ -115,56 +101,6 @@ const Analytics = () => {
         </h1>
         <div className="mb-6 text-muted-foreground text-sm">
           Track how your flipbook is performing.
-        </div>
-
-        <div className="mb-6">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-[280px] justify-start text-left font-normal",
-                  !dateRange.start && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange.start && dateRange.end ? (
-                  <>
-                    {format(new Date(dateRange.start), "LLL dd, y")} - {format(new Date(dateRange.end), "LLL dd, y")}
-                  </>
-                ) : (
-                  <span>Pick a date range</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="range"
-                selected={{
-                  from: dateRange.start ? new Date(dateRange.start) : undefined,
-                  to: dateRange.end ? new Date(dateRange.end) : undefined
-                }}
-                onSelect={(range) => {
-                  setDateRange({
-                    start: range?.from ? format(range.from, "yyyy-MM-dd") : null,
-                    end: range?.to ? format(range.to, "yyyy-MM-dd") : null,
-                  });
-                }}
-                numberOfMonths={2}
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-          {(dateRange.start || dateRange.end) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-2"
-              onClick={() => setDateRange({ start: null, end: null })}
-            >
-              Clear
-            </Button>
-          )}
         </div>
 
         {loading ? (
