@@ -91,15 +91,17 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
                 const target = flipbook.target || flipbook;
                 const newPage = target?.currentPage || target?.currentPageNum || flipbook?.currentPage;
                 const total = target?.totalPages || target?.pageCount || target?.pages?.length || flipbook?.totalPages;
+                console.log("📄 Page change callback triggered:", { newPage, total });
                 if (typeof newPage === "number") {
                   setCurrentPage(newPage);
                   setInputValue(String(newPage));
+                  console.log("✅ Callback updated page to:", newPage);
                 }
                 if (typeof total === "number") {
                   setTotalPages(total);
                 }
               } catch (e) {
-                // ignore
+                console.error("❌ Callback sync error:", e);
               }
             };
             console.log("✅ Page change listener added to close sidebar");
@@ -135,16 +137,28 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
         const target = flipbook?.target || flipbook;
         const newPage = target?.currentPage || target?.currentPageNum || flipbook?.currentPage;
         const newTotal = target?.totalPages || target?.pageCount || target?.pages?.length || flipbook?.totalPages;
+        
+        console.log("📄 Page sync tick:", { 
+          newPage, 
+          lastPage, 
+          newTotal, 
+          lastTotal,
+          willUpdate: typeof newPage === "number" && newPage !== lastPage 
+        });
+        
         if (typeof newPage === "number" && newPage !== lastPage) {
           lastPage = newPage;
           setCurrentPage(newPage);
           setInputValue(String(newPage));
+          console.log("✅ Updated page to:", newPage);
         }
         if (typeof newTotal === "number" && newTotal !== lastTotal) {
           lastTotal = newTotal;
           setTotalPages(newTotal);
         }
-      } catch {}
+      } catch (e) {
+        console.error("❌ Page sync error:", e);
+      }
       rafId = window.requestAnimationFrame(tick);
     };
     rafId = window.requestAnimationFrame(tick);
