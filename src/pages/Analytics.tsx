@@ -78,14 +78,32 @@ const Analytics = () => {
     return Math.round(total / viewsWithTime.length);
   }, [views]);
 
-  // Chart data: views by date
+  // Chart data: views by date (including days with 0 views)
   const viewsByDate = useMemo(() => {
+    if (views.length === 0) return [];
+    
+    // Count views by date
     const map: Record<string, number> = {};
     views.forEach(v => {
       const date = v.viewed_at.slice(0, 10);
       map[date] = (map[date] || 0) + 1;
     });
-    return Object.entries(map).map(([date, count]) => ({ date, count }));
+    
+    // Find date range
+    const dates = Object.keys(map).sort();
+    const firstDate = new Date(dates[0]);
+    const lastDate = new Date(dates[dates.length - 1]);
+    
+    // Fill in all dates in range
+    const result = [];
+    const current = new Date(firstDate);
+    while (current <= lastDate) {
+      const dateStr = current.toISOString().slice(0, 10);
+      result.push({ date: dateStr, count: map[dateStr] || 0 });
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return result;
   }, [views]);
 
   return (
