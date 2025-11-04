@@ -61,8 +61,8 @@ const MobileViewerToolbar: React.FC<MobileViewerToolbarProps> = ({ pdfUrl }) => 
   useEffect(() => {
     if (!isReady) return;
     let rafId: number | null = null;
-    let lastPage = currentPage;
-    let lastTotal = totalPages;
+    let lastPage = -1; // Initialize to -1 to ensure first read always updates
+    let lastTotal = -1;
     const tick = () => {
       try {
         const flipbook = (window as any).currentFlipbook;
