@@ -131,11 +131,35 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
     let rafId: number | null = null;
     let lastPage = -1; // Initialize to -1 to ensure first read always updates
     let lastTotal = -1;
+    let loggedStructure = false;
+    
     const tick = () => {
       try {
         const flipbook = (window as any).currentFlipbook;
         const target = flipbook?.target || flipbook;
-        const newPage = target?.currentPage || target?.currentPageNum || flipbook?.currentPage;
+        
+        // Log the structure once for debugging
+        if (!loggedStructure) {
+          console.log("🔍 Flipbook structure:", {
+            flipbook: Object.keys(flipbook || {}),
+            target: Object.keys(target || {}),
+            flipbookProps: flipbook,
+            targetProps: target
+          });
+          loggedStructure = true;
+        }
+        
+        // Try multiple possible API paths
+        const newPage = 
+          target?._activePage || 
+          target?.currentPage || 
+          target?.currentPageNum || 
+          flipbook?._activePage ||
+          flipbook?.currentPage ||
+          flipbook?.pageNumber ||
+          target?.getPageNumber?.() ||
+          flipbook?.getPageNumber?.();
+          
         const newTotal = target?.totalPages || target?.pageCount || target?.pages?.length || flipbook?.totalPages;
         
         console.log("📄 Page sync tick:", { 
