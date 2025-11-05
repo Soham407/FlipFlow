@@ -33,11 +33,6 @@ export const FlipbookCard = ({ flipbook, onDelete, onCopyEmbed }: FlipbookCardPr
           })}
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="aspect-[3/4] bg-gradient-to-br from-primary/5 to-accent/5 rounded-lg flex items-center justify-center">
-          <Eye className="h-12 w-12 text-muted-foreground/30" />
-        </div>
-      </CardContent>
       <CardFooter className="flex flex-wrap gap-2">
         <Button
           variant="default"
