@@ -43,7 +43,6 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           const currentMode = target?.pageMode; // 1 = SINGLE, 2 = DOUBLE
           const isCurrentlySingle = currentMode === 1;
           setIsSinglePage(!!isCurrentlySingle);
-          console.log("✅ Toolbar ready - initial page mode:", isCurrentlySingle ? "single" : "double", "currentMode:", currentMode);
 
           // Initialize page state
           const initialCurrent = target?.currentPage || target?.currentPageNum || flipbook?.currentPage || 1;
@@ -65,13 +64,11 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
         if ($sidemenu.length > 0) {
           const isCurrentlyOpen = $sidemenu.hasClass("df-sidemenu-visible");
           setIsThumbnailVisible(isCurrentlyOpen);
-          console.log("✅ Toolbar ready - flipbook instance found, thumbnail state:", isCurrentlyOpen);
           
           // Ensure sidebar starts closed
           if (isCurrentlyOpen) {
             $sidemenu.removeClass("df-sidemenu-visible");
             setIsThumbnailVisible(false);
-            console.log("✅ Thumbnail sidebar closed on initialization");
           }
 
           // Add page change listener to close sidebar when page changes
@@ -83,7 +80,6 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
               if ($currentSidemenu.hasClass("df-sidemenu-visible")) {
                 $currentSidemenu.removeClass("df-sidemenu-visible");
                 setIsThumbnailVisible(false);
-                console.log("✅ Thumbnail sidebar closed due to page change");
               }
 
               // Sync current page from target if available
@@ -91,33 +87,25 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
                 const target = flipbook.target || flipbook;
                 const newPage = target?.currentPage || target?.currentPageNum || flipbook?.currentPage;
                 const total = target?.totalPages || target?.pageCount || target?.pages?.length || flipbook?.totalPages;
-                console.log("📄 Page change callback triggered:", { newPage, total });
                 if (typeof newPage === "number") {
                   setCurrentPage(newPage);
                   setInputValue(String(newPage));
-                  console.log("✅ Callback updated page to:", newPage);
                 }
                 if (typeof total === "number") {
                   setTotalPages(total);
                 }
               } catch (e) {
-                console.error("❌ Callback sync error:", e);
+                console.error("Page sync error:", e);
               }
             };
-            console.log("✅ Page change listener added to close sidebar");
           }
-        } else {
-          console.log("⚠️ Sidemenu not found yet, will retry...");
-          if (retryCount < maxRetries) {
-            retryCount++;
-            setTimeout(checkReady, 300);
-          }
+        } else if (retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(checkReady, 300);
         }
       } else if (retryCount < maxRetries) {
         retryCount++;
         setTimeout(checkReady, 300);
-      } else {
-        console.warn("⚠️ Failed to initialize toolbar after maximum retries");
       }
     };
     
@@ -129,27 +117,14 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
   useEffect(() => {
     if (!isReady) return;
     let rafId: number | null = null;
-    let lastPage = -1; // Initialize to -1 to ensure first read always updates
+    let lastPage = -1;
     let lastTotal = -1;
-    let loggedStructure = false;
     
     const tick = () => {
       try {
         const flipbook = (window as any).currentFlipbook;
         const target = flipbook?.target || flipbook;
         
-        // Log the structure once for debugging
-        if (!loggedStructure) {
-          console.log("🔍 Flipbook structure:", {
-            flipbook: Object.keys(flipbook || {}),
-            target: Object.keys(target || {}),
-            flipbookProps: flipbook,
-            targetProps: target
-          });
-          loggedStructure = true;
-        }
-        
-        // Try multiple possible API paths
         const newPage = 
           target?._activePage || 
           target?.currentPage || 
@@ -162,26 +137,17 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           
         const newTotal = target?.totalPages || target?.pageCount || target?.pages?.length || flipbook?.totalPages;
         
-        console.log("📄 Page sync tick:", { 
-          newPage, 
-          lastPage, 
-          newTotal, 
-          lastTotal,
-          willUpdate: typeof newPage === "number" && newPage !== lastPage 
-        });
-        
         if (typeof newPage === "number" && newPage !== lastPage) {
           lastPage = newPage;
           setCurrentPage(newPage);
           setInputValue(String(newPage));
-          console.log("✅ Updated page to:", newPage);
         }
         if (typeof newTotal === "number" && newTotal !== lastTotal) {
           lastTotal = newTotal;
           setTotalPages(newTotal);
         }
       } catch (e) {
-        console.error("❌ Page sync error:", e);
+        console.error("Page sync error:", e);
       }
       rafId = window.requestAnimationFrame(tick);
     };
@@ -211,7 +177,7 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       return;
     }
 
-    console.log("🎯 Executing action:", action, "on flipbook:", flipbook);
+    
     
     try {
       executeAction(action, flipbook);
@@ -262,7 +228,6 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       if (isCurrentlyOpen) {
         $sidemenu.removeClass("df-sidemenu-visible");
         setIsThumbnailVisible(false);
-        console.log("✅ Thumbnail sidebar closed");
       } else {
         $sidemenu.addClass("df-sidemenu-visible");
         setIsThumbnailVisible(true);
@@ -271,7 +236,6 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
         if (flipbook.contentProvider?.initThumbs) {
           flipbook.contentProvider.initThumbs();
         }
-        console.log("✅ Thumbnail sidebar opened");
       }
     } catch (error) {
       console.error("Error toggling thumbnail sidebar:", error);
@@ -295,13 +259,11 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       case "zoomIn":
         if (flipbook.zoom) {
           flipbook.zoom(1);
-          console.log("✅ Zoomed in");
         }
         break;
       case "zoomOut":
         if (flipbook.zoom) {
           flipbook.zoom(-1);
-          console.log("✅ Zoomed out");
         }
         break;
       case "prevPage":
@@ -313,7 +275,6 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       case "fitToScreen":
         if (flipbook.target && flipbook.target.fitToScreen) {
           flipbook.target.fitToScreen();
-          console.log("✅ Fit to screen");
         }
         break;
       case "download":
@@ -324,13 +285,11 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          console.log("✅ Download initiated");
         }
         break;
       case "fullscreen":
         // Try dFlip methods first
         if (callMethod(flipbook, ["switchFullscreen", "ui.fullscreen", "target.switchFullscreen"]) !== undefined) {
-          console.log("✅ Fullscreen toggled via dFlip");
           break;
         }
         // Fallback: use browser Fullscreen API on the container
@@ -342,7 +301,6 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           } else {
             (document as any).exitFullscreen?.();
           }
-          console.log("✅ Fullscreen toggled via Web API");
         } catch (e) {
           console.error("Fullscreen not supported", e);
           toast.error("Fullscreen not supported in this browser");
@@ -386,7 +344,6 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           }
 
           setIsSinglePage(newSingle);
-          console.log("✅ Page mode toggled to:", newSingle ? "single" : "double", "pageMode:", target.pageMode);
           toast.success(`Switched to ${newSingle ? "single" : "double"} page mode`);
         } catch (e) {
           console.error("Error toggling page mode", e);

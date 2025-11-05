@@ -4,10 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Upload, FileText, Eye, Trash2, LogOut, Plus, Crown, Copy, BarChart2, User } from "lucide-react";
+import { Loader2, Upload, Plus, Crown, LogOut, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -19,6 +18,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import type { Session } from "@supabase/supabase-js";
+import { StatsCards } from "@/components/dashboard/StatsCards";
+import { FlipbookCard } from "@/components/dashboard/FlipbookCard";
+import { EmptyState } from "@/components/dashboard/EmptyState";
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 
 interface Flipbook {
   id: string;
@@ -367,11 +370,7 @@ const Dashboard = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -447,54 +446,7 @@ const Dashboard = () => {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
-          <Card className="border-2">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Flipbooks</p>
-                  <p className="text-3xl font-bold mt-1">{flipbooks.length}</p>
-                </div>
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-                  <FileText className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Plan Status</p>
-                  <p className="text-3xl font-bold mt-1 capitalize">{userRole}</p>
-                </div>
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-                  <Crown className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {userRole === 'free' ? 'Remaining' : 'Capacity'}
-                  </p>
-                  <p className="text-3xl font-bold mt-1">
-                    {userRole === 'free' ? `${3 - flipbooks.length}` : '∞'}
-                  </p>
-                </div>
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-                  <Upload className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <StatsCards flipbooksCount={flipbooks.length} userRole={userRole} />
 
         {/* Main Content */}
         <div className="space-y-6">
@@ -592,78 +544,16 @@ const Dashboard = () => {
           </div>
 
           {flipbooks.length === 0 ? (
-            <Card className="border-2 border-dashed">
-              <CardContent className="py-16 text-center">
-                <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary/10 to-accent/10 mb-4">
-                  <FileText className="h-10 w-10 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">No flipbooks yet</h3>
-                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  Upload your first PDF to create a beautiful, interactive flipbook in seconds.
-                </p>
-                <Button onClick={() => setIsModalOpen(true)} size="lg" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Create Your First Flipbook
-                </Button>
-              </CardContent>
-            </Card>
+            <EmptyState onCreateClick={() => setIsModalOpen(true)} />
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {flipbooks.map((flipbook) => (
-                <Card key={flipbook.id} className="border-2 hover:border-primary/50 transition-all hover:shadow-lg group">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="inline-flex p-2 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10">
-                        <FileText className="h-5 w-5 text-primary" />
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {new Date(flipbook.created_at).toLocaleDateString()}
-                      </Badge>
-                    </div>
-                    <CardTitle className="line-clamp-2 mt-3 group-hover:text-primary transition-colors">
-                      {flipbook.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardFooter className="flex gap-2 pt-0">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="flex-1 gap-2"
-                      onClick={() => navigate(`/view/${flipbook.id}`)}
-                    >
-                      <Eye className="h-4 w-4" />
-                      View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => handleCopyEmbed(flipbook)}
-                      title="Copy embed iframe code"
-                    >
-                      <Copy className="h-4 w-4" />
-                      <span className="hidden sm:inline">Embed</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => navigate(`/analytics/${flipbook.id}`)}
-                      title="View analytics for this flipbook"
-                    >
-                      <BarChart2 className="h-4 w-4" />
-                      <span className="hidden sm:inline">Analytics</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                      onClick={() => handleDelete(flipbook.id, flipbook.file_path)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </CardFooter>
-                </Card>
+                <FlipbookCard
+                  key={flipbook.id}
+                  flipbook={flipbook}
+                  onDelete={handleDelete}
+                  onCopyEmbed={handleCopyEmbed}
+                />
               ))}
             </div>
           )}
