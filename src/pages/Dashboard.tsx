@@ -215,20 +215,18 @@ const Dashboard = () => {
 
     setUploading(true);
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${session.user.id}/${Date.now()}.${fileExt}`;
+      // Use the R2 upload edge function
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', title);
+      formData.append('fileSize', file.size.toString());
 
-      const { error: uploadError } = await supabase.storage
-        .from("user_pdfs")
-        .upload(fileName, file);
+      const { data, error } = await supabase.functions.invoke('upload-to-r2', {
+        body: formData,
+      });
 
-      if (uploadError) throw uploadError;
-
-      const { error: dbError } = await supabase
-        .from("flipbooks")
-        .insert({ title, file_path: fileName, user_id: session.user.id, file_size: file.size });
-
-      if (dbError) throw dbError;
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Upload failed');
 
       toast.success("Flipbook uploaded successfully!");
       setTitle("");
@@ -237,6 +235,7 @@ const Dashboard = () => {
       fetchFlipbooks();
       fetchUserRole();
     } catch (error: any) {
+      console.error('Upload error:', error);
       toast.error(error.message || "Failed to upload flipbook");
     } finally {
       setUploading(false);
@@ -245,22 +244,18 @@ const Dashboard = () => {
 
   const handleDelete = async (id: string, filePath: string) => {
     try {
-      const { error: storageError } = await supabase.storage
-        .from("user_pdfs")
-        .remove([filePath]);
+      // Use the R2 delete edge function
+      const { data, error } = await supabase.functions.invoke('delete-from-r2', {
+        body: { flipbookId: id },
+      });
 
-      if (storageError) throw storageError;
-
-      const { error: dbError } = await supabase
-        .from("flipbooks")
-        .delete()
-        .eq("id", id);
-
-      if (dbError) throw dbError;
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Delete failed');
 
       toast.success("Flipbook deleted successfully!");
       fetchFlipbooks();
     } catch (error: any) {
+      console.error('Delete error:', error);
       toast.error(error.message || "Failed to delete flipbook");
     }
   };

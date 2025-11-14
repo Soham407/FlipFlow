@@ -199,6 +199,19 @@ export type Database = {
         Returns: boolean
       }
       slugify: { Args: { txt: string }; Returns: string }
+      track_flipbook_view: {
+        Args: {
+          _flipbook_id: string
+          _ip_address?: string
+          _session_id?: string
+          _user_agent?: string
+        }
+        Returns: string
+      }
+      update_view_time_spent: {
+        Args: { _time_spent_seconds: number; _view_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "free" | "pro"
