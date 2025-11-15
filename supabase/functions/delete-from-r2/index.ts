@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.76.1';
-import { S3Client, DeleteObjectCommand } from 'https://esm.sh/@aws-sdk/client-s3@3.621.0';
+import { AwsClient } from 'https://esm.sh/aws4fetch@1.0.18';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,14 +12,10 @@ const R2_ACCESS_KEY_ID = Deno.env.get('R2_ACCESS_KEY_ID')!;
 const R2_SECRET_ACCESS_KEY = Deno.env.get('R2_SECRET_ACCESS_KEY')!;
 const R2_BUCKET_NAME = Deno.env.get('R2_BUCKET_NAME')!;
 
-// Initialize S3 client for R2
-const s3Client = new S3Client({
-  region: 'auto',
-  endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: R2_ACCESS_KEY_ID,
-    secretAccessKey: R2_SECRET_ACCESS_KEY,
-  },
+// Initialize AWS client for R2
+const r2 = new AwsClient({
+  accessKeyId: R2_ACCESS_KEY_ID,
+  secretAccessKey: R2_SECRET_ACCESS_KEY,
 });
 
 Deno.serve(async (req) => {
@@ -68,19 +64,22 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized to delete this flipbook');
     }
 
-    // Delete from R2 using AWS SDK
+    // Delete from R2 using aws4fetch
     console.log('Deleting from R2:', { filePath: flipbook.file_path, bucket: R2_BUCKET_NAME });
     
-    const deleteCommand = new DeleteObjectCommand({
-      Bucket: R2_BUCKET_NAME,
-      Key: flipbook.file_path,
-    });
-
+    const deleteUrl = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET_NAME}/${flipbook.file_path}`;
+    
     try {
-      await s3Client.send(deleteCommand);
-      console.log('Successfully deleted from R2');
+      const deleteResponse = await r2.fetch(deleteUrl, { method: 'DELETE' });
+      
+      if (!deleteResponse.ok) {
+        const errorText = await deleteResponse.text();
+        console.warn('R2 delete warning:', errorText);
+      } else {
+        console.log('Successfully deleted from R2');
+      }
     } catch (error) {
-      console.warn('R2 delete warning:', error);
+      console.warn('R2 delete error (continuing):', error);
       // Continue even if R2 delete fails (file might already be gone)
     }
 
