@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.76.1';
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from 'https://esm.sh/@aws-sdk/client-s3@3.621.0';
+import { AwsClient } from 'https://esm.sh/aws4fetch@1.0.18';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,14 +12,10 @@ const R2_ACCESS_KEY_ID = Deno.env.get('R2_ACCESS_KEY_ID')!;
 const R2_SECRET_ACCESS_KEY = Deno.env.get('R2_SECRET_ACCESS_KEY')!;
 const R2_BUCKET_NAME = Deno.env.get('R2_BUCKET_NAME')!;
 
-// Initialize S3 client for R2
-const s3Client = new S3Client({
-  region: 'auto',
-  endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: R2_ACCESS_KEY_ID,
-    secretAccessKey: R2_SECRET_ACCESS_KEY,
-  },
+// Initialize AWS client for R2
+const r2 = new AwsClient({
+  accessKeyId: R2_ACCESS_KEY_ID,
+  secretAccessKey: R2_SECRET_ACCESS_KEY,
 });
 
 Deno.serve(async (req) => {
@@ -60,26 +56,33 @@ Deno.serve(async (req) => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
 
-    // Convert file to ArrayBuffer and then to Uint8Array
+    // Convert file to ArrayBuffer
     const fileBuffer = await file.arrayBuffer();
-    const fileBytes = new Uint8Array(fileBuffer);
 
-    // Upload to R2 using AWS SDK
-    console.log('Uploading to R2:', { fileName, bucket: R2_BUCKET_NAME, size: fileBytes.length });
+    // Upload to R2 using aws4fetch
+    console.log('Uploading to R2:', { fileName, bucket: R2_BUCKET_NAME, size: fileBuffer.byteLength });
     
-    const uploadCommand = new PutObjectCommand({
-      Bucket: R2_BUCKET_NAME,
-      Key: fileName,
-      Body: fileBytes,
-      ContentType: file.type,
-      ContentLength: fileBytes.length,
-    });
-
+    const r2Url = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET_NAME}/${fileName}`;
+    
     try {
-      await s3Client.send(uploadCommand);
+      const uploadResponse = await r2.fetch(r2Url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type,
+          'Content-Length': fileBuffer.byteLength.toString(),
+        },
+        body: fileBuffer,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('R2 upload failed:', errorText);
+        throw new Error(`R2 upload failed: ${uploadResponse.status} ${errorText}`);
+      }
+
       console.log('Successfully uploaded to R2');
     } catch (error) {
-      console.error('R2 upload failed:', error);
+      console.error('R2 upload error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to upload to R2: ${errorMessage}`);
     }
@@ -101,11 +104,8 @@ Deno.serve(async (req) => {
       console.error('Database error:', dbError);
       // Try to clean up R2 file if DB insert fails
       try {
-        const deleteCommand = new DeleteObjectCommand({
-          Bucket: R2_BUCKET_NAME,
-          Key: fileName,
-        });
-        await s3Client.send(deleteCommand);
+        const deleteUrl = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET_NAME}/${fileName}`;
+        await r2.fetch(deleteUrl, { method: 'DELETE' });
       } catch (cleanupError) {
         console.error('Cleanup failed:', cleanupError);
       }
