@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.76.1';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from 'https://esm.sh/@aws-sdk/client-s3@3.621.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,7 +11,16 @@ const R2_ACCOUNT_ID = Deno.env.get('R2_ACCOUNT_ID')!;
 const R2_ACCESS_KEY_ID = Deno.env.get('R2_ACCESS_KEY_ID')!;
 const R2_SECRET_ACCESS_KEY = Deno.env.get('R2_SECRET_ACCESS_KEY')!;
 const R2_BUCKET_NAME = Deno.env.get('R2_BUCKET_NAME')!;
-const R2_ENDPOINT = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+
+// Initialize S3 client for R2
+const s3Client = new S3Client({
+  region: 'auto',
+  endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: R2_ACCESS_KEY_ID,
+    secretAccessKey: R2_SECRET_ACCESS_KEY,
+  },
+});
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -50,33 +60,28 @@ Deno.serve(async (req) => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
 
-    // Convert file to ArrayBuffer
+    // Convert file to ArrayBuffer and then to Uint8Array
     const fileBuffer = await file.arrayBuffer();
+    const fileBytes = new Uint8Array(fileBuffer);
 
-    // Upload to R2 using S3-compatible API with AWS Signature V4
-    const uploadUrl = `${R2_ENDPOINT}/${R2_BUCKET_NAME}/${fileName}`;
+    // Upload to R2 using AWS SDK
+    console.log('Uploading to R2:', { fileName, bucket: R2_BUCKET_NAME, size: fileBytes.length });
     
-    // Create AWS Signature V4
-    const date = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
-    const dateStamp = date.slice(0, 8);
-    const region = 'auto'; // R2 uses 'auto' as region
-    
-    const uploadResponse = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': file.type,
-        'Content-Length': fileBuffer.byteLength.toString(),
-        'x-amz-content-sha256': 'UNSIGNED-PAYLOAD',
-        'x-amz-date': date,
-      },
-      body: fileBuffer,
-      // Using R2's public endpoint without authentication for now
-      // For production: implement full AWS Signature V4 or use S3 SDK
+    const uploadCommand = new PutObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: fileName,
+      Body: fileBytes,
+      ContentType: file.type,
+      ContentLength: fileBytes.length,
     });
 
-    if (!uploadResponse.ok) {
-      console.error('R2 upload failed:', await uploadResponse.text());
-      throw new Error('Failed to upload to R2');
+    try {
+      await s3Client.send(uploadCommand);
+      console.log('Successfully uploaded to R2');
+    } catch (error) {
+      console.error('R2 upload failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to upload to R2: ${errorMessage}`);
     }
 
     // Create flipbook record in database
@@ -95,7 +100,15 @@ Deno.serve(async (req) => {
     if (dbError) {
       console.error('Database error:', dbError);
       // Try to clean up R2 file if DB insert fails
-      await fetch(uploadUrl, { method: 'DELETE' });
+      try {
+        const deleteCommand = new DeleteObjectCommand({
+          Bucket: R2_BUCKET_NAME,
+          Key: fileName,
+        });
+        await s3Client.send(deleteCommand);
+      } catch (cleanupError) {
+        console.error('Cleanup failed:', cleanupError);
+      }
       throw new Error('Failed to create flipbook record');
     }
 
