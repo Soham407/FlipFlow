@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.76.1';
+import { S3Client, DeleteObjectCommand } from 'https://esm.sh/@aws-sdk/client-s3@3.621.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,7 +11,16 @@ const R2_ACCOUNT_ID = Deno.env.get('R2_ACCOUNT_ID')!;
 const R2_ACCESS_KEY_ID = Deno.env.get('R2_ACCESS_KEY_ID')!;
 const R2_SECRET_ACCESS_KEY = Deno.env.get('R2_SECRET_ACCESS_KEY')!;
 const R2_BUCKET_NAME = Deno.env.get('R2_BUCKET_NAME')!;
-const R2_ENDPOINT = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+
+// Initialize S3 client for R2
+const s3Client = new S3Client({
+  region: 'auto',
+  endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: R2_ACCESS_KEY_ID,
+    secretAccessKey: R2_SECRET_ACCESS_KEY,
+  },
+});
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -58,25 +68,20 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized to delete this flipbook');
     }
 
-    // Delete from R2 using S3-compatible API
-    const deleteUrl = `${R2_ENDPOINT}/${R2_BUCKET_NAME}/${flipbook.file_path}`;
+    // Delete from R2 using AWS SDK
+    console.log('Deleting from R2:', { filePath: flipbook.file_path, bucket: R2_BUCKET_NAME });
     
-    // Create AWS Signature V4 headers
-    const date = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
-    
-    const deleteResponse = await fetch(deleteUrl, {
-      method: 'DELETE',
-      headers: {
-        'x-amz-content-sha256': 'UNSIGNED-PAYLOAD',
-        'x-amz-date': date,
-      },
-      // Using R2's public endpoint without authentication for now
-      // For production: implement full AWS Signature V4 or use S3 SDK
+    const deleteCommand = new DeleteObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: flipbook.file_path,
     });
 
-    // Continue even if R2 delete fails (file might already be gone)
-    if (!deleteResponse.ok) {
-      console.warn('R2 delete warning:', await deleteResponse.text());
+    try {
+      await s3Client.send(deleteCommand);
+      console.log('Successfully deleted from R2');
+    } catch (error) {
+      console.warn('R2 delete warning:', error);
+      // Continue even if R2 delete fails (file might already be gone)
     }
 
     // Delete flipbook record from database
