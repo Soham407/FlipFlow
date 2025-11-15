@@ -58,11 +58,20 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized to delete this flipbook');
     }
 
-    // Delete from R2
+    // Delete from R2 using S3-compatible API
     const deleteUrl = `${R2_ENDPOINT}/${R2_BUCKET_NAME}/${flipbook.file_path}`;
+    
+    // Create AWS Signature V4 headers
+    const date = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
     
     const deleteResponse = await fetch(deleteUrl, {
       method: 'DELETE',
+      headers: {
+        'x-amz-content-sha256': 'UNSIGNED-PAYLOAD',
+        'x-amz-date': date,
+      },
+      // Using R2's public endpoint without authentication for now
+      // For production: implement full AWS Signature V4 or use S3 SDK
     });
 
     // Continue even if R2 delete fails (file might already be gone)
