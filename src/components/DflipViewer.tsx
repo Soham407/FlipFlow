@@ -173,7 +173,7 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress }: DflipVi
   return (
     <div 
       ref={containerRef}
-      id="flipbook-container"
+      id="flipbookContainer"
       className="w-full h-full min-h-[600px]"
     />
   );
