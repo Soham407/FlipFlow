@@ -4,8 +4,7 @@
  * Helper functions for working with Cloudflare R2 storage
  */
 
-const R2_ACCOUNT_ID = import.meta.env.VITE_R2_ACCOUNT_ID || '';
-const R2_PUBLIC_BUCKET_URL = `https://pub-${R2_ACCOUNT_ID}.r2.dev`;
+const R2_PUBLIC_BUCKET_URL = import.meta.env.VITE_R2_PUBLIC_URL || '';
 
 /**
  * Get the public URL for a file stored in R2
