@@ -22,13 +22,6 @@ declare global {
   }
 }
 
-/**
- * DflipViewer - A React wrapper component for the dflip.js library
- * 
- * This component isolates the imperative dflip.js library from the React
- * component tree, preventing state synchronization issues and improving
- * stability during hot-reloading.
- */
 export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress }: DflipViewerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scriptsReady, setScriptsReady] = useState(false);
@@ -119,7 +112,6 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress }: DflipVi
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Clean up flipbook instance if needed
       if (flipbookInitialized.current && containerRef.current) {
         try {
           const $container = window.$(containerRef.current);
@@ -148,33 +140,36 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress }: DflipVi
     );
   }
 
-  if (!scriptsReady || !isReady) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[600px] gap-4 p-4">
-        <div className="w-full max-w-3xl space-y-4">
-          <Skeleton className="w-full h-[500px] rounded-lg" />
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Loading flipbook...</span>
-              <span>{loadingProgress}%</span>
-            </div>
-            <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-              <div 
-                className="bg-primary h-full transition-all duration-300"
-                style={{ width: `${loadingProgress}%` }}
-              />
+  return (
+    <div className="relative w-full h-full min-h-[600px]">
+      {/* Loading Overlay - Only shows while loading */}
+      {(!scriptsReady || !isReady) && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background p-4">
+          <div className="w-full max-w-3xl space-y-4">
+            <Skeleton className="w-full h-[500px] rounded-lg" />
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Loading flipbook...</span>
+                <span>{loadingProgress}%</span>
+              </div>
+              <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-primary h-full transition-all duration-300"
+                  style={{ width: `${loadingProgress}%` }}
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  return (
-    <div 
-      ref={containerRef}
-      id="flipbookContainer"
-      className="w-full h-full min-h-[600px]"
-    />
+      {/* The actual Flipbook Container - Always rendered but hidden behind overlay */}
+      <div 
+        ref={containerRef}
+        id="flipbookContainer"
+        className="w-full h-full"
+        style={{ visibility: (!scriptsReady || !isReady) ? 'hidden' : 'visible' }} 
+      />
+    </div>
   );
 };
