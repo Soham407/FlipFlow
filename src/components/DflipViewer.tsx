@@ -14,7 +14,8 @@ declare global {
   interface Window {
     $: any;
     jQuery: any;
-    loadFlipbook: (url: string, rtlMode: boolean, page: number, pdfId: string) => void;
+    // Updated signature to accept element
+    loadFlipbook: (element: HTMLElement, url: string, rtlMode: boolean, page: number, pdfId: string) => void;
     getLastPage: (pdfId: string) => Promise<number>;
     onPdfProgress?: (progress: number) => void;
     onPdfReady?: () => void;
@@ -77,31 +78,36 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress }: DflipVi
     };
   }, [scriptsReady, onReady, onProgress]);
 
-  // Initialize the flipbook when everything is ready
+  // Initialize the flipbook
   useEffect(() => {
     if (!scriptsReady || !pdfUrl || flipbookInitialized.current) {
       return;
+    }
+
+    // Ensure container exists before calling the library
+    if (!containerRef.current) {
+        console.warn("Container ref is null, retrying...");
+        return;
     }
 
     const initFlipbook = () => {
       try {
         console.log('Initializing flipbook viewer:', { pdfUrl, flipbookId });
         
-        // Clear the container
         if (containerRef.current) {
-          containerRef.current.innerHTML = '';
+            containerRef.current.innerHTML = ''; // Clean up previous
+            
+            // PASS THE DOM ELEMENT DIRECTLY
+            window.loadFlipbook(containerRef.current, pdfUrl, false, 1, flipbookId);
+            
+            flipbookInitialized.current = true;
         }
-
-        // Initialize dflip
-        window.loadFlipbook(pdfUrl, false, 1, flipbookId);
-        flipbookInitialized.current = true;
       } catch (error) {
         console.error('Error initializing flipbook:', error);
         setScriptError(true);
       }
     };
 
-    // Small delay to ensure DOM is ready
     const timeoutId = setTimeout(initFlipbook, 100);
 
     return () => {
@@ -124,9 +130,10 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress }: DflipVi
         } catch (error) {
           console.warn('Error disposing flipbook:', error);
         }
+        flipbookInitialized.current = false;
       }
     };
-  }, []);
+  }, []); 
 
   if (scriptError) {
     return (
@@ -142,7 +149,7 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress }: DflipVi
 
   return (
     <div className="relative w-full h-full min-h-[600px]">
-      {/* Loading Overlay - Only shows while loading */}
+      {/* Loading Overlay - shows on top of the hidden container */}
       {(!scriptsReady || !isReady) && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background p-4">
           <div className="w-full max-w-3xl space-y-4">
@@ -163,7 +170,7 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress }: DflipVi
         </div>
       )}
 
-      {/* The actual Flipbook Container - Always rendered but hidden behind overlay */}
+      {/* The actual Flipbook Container - VISIBLE but potentially empty or hidden by overlay */}
       <div 
         ref={containerRef}
         id="flipbookContainer"
