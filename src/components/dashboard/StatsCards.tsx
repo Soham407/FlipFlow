@@ -1,59 +1,76 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Crown, Upload } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { BookOpen, HardDrive, Zap } from "lucide-react";
+import { PLANS } from "@/config/constants";
+import type { UserRole } from "@/types";
 
 interface StatsCardsProps {
   flipbooksCount: number;
-  userRole: 'free' | 'pro';
+  userRole: UserRole;
 }
 
-export const StatsCards = ({ flipbooksCount, userRole }: StatsCardsProps) => {
+export function StatsCards({ flipbooksCount, userRole }: StatsCardsProps) {
+  const plan = userRole === 'pro' ? PLANS.PRO : PLANS.FREE;
+  
+  // Calculate usage percentage (safe for Infinity)
+  const usagePercent = userRole === 'pro' 
+    ? 0 // Pro has no limit visually
+    : Math.min((flipbooksCount / plan.maxFlipbooks) * 100, 100);
+
   return (
     <div className="grid gap-4 md:grid-cols-3 mb-8">
-      <Card className="border-2">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Flipbooks</p>
-              <p className="text-3xl font-bold mt-1">{flipbooksCount}</p>
-            </div>
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-              <FileText className="h-6 w-6 text-primary" />
-            </div>
-          </div>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Flipbooks</CardTitle>
+          <BookOpen className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{flipbooksCount}</div>
+          <p className="text-xs text-muted-foreground">
+            {userRole === 'free' 
+              ? `${plan.maxFlipbooks - flipbooksCount} remaining on Free plan`
+              : "Unlimited uploads active"
+            }
+          </p>
         </CardContent>
       </Card>
 
-      <Card className="border-2">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Plan Status</p>
-              <p className="text-3xl font-bold mt-1 capitalize">{userRole}</p>
-            </div>
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-              <Crown className="h-6 w-6 text-primary" />
-            </div>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Storage Used</CardTitle>
+          <HardDrive className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {userRole === 'free' ? `${plan.maxFileSizeMB}MB` : `${plan.maxFileSizeMB}MB`}
           </div>
+          <p className="text-xs text-muted-foreground">
+            Max file size per upload
+          </p>
         </CardContent>
       </Card>
 
-      <Card className="border-2">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                {userRole === 'free' ? 'Remaining' : 'Capacity'}
-              </p>
-              <p className="text-3xl font-bold mt-1">
-                {userRole === 'free' ? `${3 - flipbooksCount}` : '∞'}
-              </p>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Plan Usage</CardTitle>
+          <Zap className={`h-4 w-4 ${userRole === 'pro' ? 'text-yellow-500' : 'text-muted-foreground'}`} />
+        </CardHeader>
+        <CardContent>
+          {userRole === 'pro' ? (
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold text-primary">PRO</span>
+              <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                ACTIVE
+              </span>
             </div>
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-              <Upload className="h-6 w-6 text-primary" />
+          ) : (
+            <div className="space-y-2">
+              <div className="text-2xl font-bold">{usagePercent.toFixed(0)}%</div>
+              <Progress value={usagePercent} className="h-2" />
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>
   );
-};
+}
