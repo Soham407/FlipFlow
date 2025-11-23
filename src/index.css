@@ -32,16 +32,17 @@
 
 /* Force thumbnail sidebar to be visible and properly positioned */
 .df-sidemenu {
-  z-index: 1000 !important;
+  z-index: 40 !important; /* ✅ LOWER - Sits under your z-50 toolbar */
   background-color: rgba(238, 238, 238, 0.95) !important;
   border-right: 2px solid #ccc !important;
   position: fixed !important;
   top: 0 !important;
-  left: -220px !important;
-  width: 220px !important;
+  left: -260px !important;
+  width: 260px !important; /* Increased width for better touch targets */
   height: 100vh !important;
   transform: translateX(-100%) !important;
-  transition: transform 0.5s ease !important;
+  transition: transform 0.3s ease !important; /* Faster animation feels snappier */
+  padding-top: 80px !important; /* ✅ PADDING: Pushes thumbnails down so they aren't hidden behind toolbar */
 }
 
 .df-sidemenu.df-sidemenu-visible {
