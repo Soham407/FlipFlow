@@ -53,6 +53,9 @@ serve(async (req) => {
     }
 
     // Update subscription - 1 month for 100 INR
+    // CRITICAL: We await these updates to ensure they complete before returning
+    // This prevents race conditions where the frontend checks subscription status
+    // before the database updates are committed
     const expiresAt = new Date();
     expiresAt.setMonth(expiresAt.getMonth() + 1); // 1 month from now
 
@@ -73,6 +76,7 @@ serve(async (req) => {
     }
 
     // Update user role to pro
+    // Awaited to ensure role update completes before response is sent
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .upsert({

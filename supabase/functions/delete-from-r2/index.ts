@@ -64,7 +64,27 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized to delete this flipbook');
     }
 
-    // Delete from R2 using aws4fetch
+    // Additional security: Verify file path structure matches user_id
+    // File paths should be in format: {user_id}/{timestamp}-{uuid}.{ext}
+    if (!flipbook.file_path.startsWith(`${user.id}/`)) {
+      throw new Error('File path does not match user ownership');
+    }
+
+    // CRITICAL: Delete database record FIRST to prevent broken links
+    // If DB deletion fails, we don't want to delete the file (user still sees it)
+    // If DB deletion succeeds but R2 deletion fails, that's acceptable (just wasted storage)
+    const { error: dbError } = await supabase
+      .from('flipbooks')
+      .delete()
+      .eq('id', flipbookId);
+
+    if (dbError) {
+      console.error('Database error:', dbError);
+      throw new Error('Failed to delete flipbook record');
+    }
+
+    // Now attempt to delete from R2 storage
+    // If this fails, we silently continue (better to waste storage than show broken links)
     console.log('Deleting from R2:', { filePath: flipbook.file_path, bucket: R2_BUCKET_NAME });
     
     const deleteUrl = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET_NAME}/${flipbook.file_path}`;
@@ -74,24 +94,15 @@ Deno.serve(async (req) => {
       
       if (!deleteResponse.ok) {
         const errorText = await deleteResponse.text();
-        console.warn('R2 delete warning:', errorText);
+        console.warn('R2 delete warning (non-critical):', errorText);
+        // Don't throw - DB record is already deleted, this is just cleanup
       } else {
         console.log('Successfully deleted from R2');
       }
     } catch (error) {
-      console.warn('R2 delete error (continuing):', error);
-      // Continue even if R2 delete fails (file might already be gone)
-    }
-
-    // Delete flipbook record from database
-    const { error: dbError } = await supabase
-      .from('flipbooks')
-      .delete()
-      .eq('id', flipbookId);
-
-    if (dbError) {
-      console.error('Database error:', dbError);
-      throw new Error('Failed to delete flipbook record');
+      console.warn('R2 delete error (non-critical, continuing):', error);
+      // Continue even if R2 delete fails - DB record is already deleted
+      // This prevents broken links in the UI
     }
 
     console.log('Delete successful:', { flipbookId, filePath: flipbook.file_path });
