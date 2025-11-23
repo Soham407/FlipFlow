@@ -202,7 +202,11 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
         callMethod(flipbook, ["next", "api.nextPage", "target.nextPage", "ui.next"]);
         break;
       case "fitToScreen":
-        if (flipbook.target?.fitToScreen) flipbook.target.fitToScreen();
+        if (flipbook.target?.fitToScreen) {
+          flipbook.target.fitToScreen();
+          // Force resize to reset zoom/layout
+          if (flipbook.resize) flipbook.resize();
+        }
         break;
       case "download":
         if (pdfUrl) {
