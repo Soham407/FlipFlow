@@ -13,7 +13,6 @@ const iconClass = "w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600";
 const btnClass =
   "bg-white hover:bg-gray-100 rounded-full flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 transition-colors border border-gray-200";
 
-// --- INTERFACE REVERTED ---
 interface ViewerToolbarProps {
   pdfUrl?: string;
 }
@@ -37,16 +36,16 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       if (flipbook && window.jQuery) {
         setIsReady(true);
         
-        // Check initial page mode from dFlip target
+        // Check initial page mode
         try {
           const target = flipbook.target || flipbook;
           const currentMode = target?.pageMode; // 1 = SINGLE, 2 = DOUBLE
-          const isCurrentlySingle = currentMode === 1;
-          setIsSinglePage(!!isCurrentlySingle);
+          setIsSinglePage(currentMode === 1);
 
           // Initialize page state
           const initialCurrent = target?.currentPage || target?.currentPageNum || flipbook?.currentPage || 1;
           const initialTotal = target?.totalPages || target?.pageCount || target?.pages?.length || flipbook?.totalPages || 0;
+          
           if (typeof initialCurrent === "number") {
             setCurrentPage(initialCurrent);
             setInputValue(String(initialCurrent));
@@ -58,6 +57,7 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           console.warn("⚠️ Unable to read initial page mode", e);
         }
         
+        // Sidebar sync logic
         const $container = window.jQuery("#flipbookContainer");
         const $sidemenu = $container.find(".df-sidemenu");
         
@@ -65,13 +65,11 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           const isCurrentlyOpen = $sidemenu.hasClass("df-sidemenu-visible");
           setIsThumbnailVisible(isCurrentlyOpen);
           
-          // Ensure sidebar starts closed
           if (isCurrentlyOpen) {
             $sidemenu.removeClass("df-sidemenu-visible");
             setIsThumbnailVisible(false);
           }
 
-          // Add page change listener to close sidebar when page changes
           if (flipbook.target && flipbook.target.updatePageCallback) {
             const originalCallback = flipbook.target.updatePageCallback;
             flipbook.target.updatePageCallback = function() {
@@ -80,22 +78,6 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
               if ($currentSidemenu.hasClass("df-sidemenu-visible")) {
                 $currentSidemenu.removeClass("df-sidemenu-visible");
                 setIsThumbnailVisible(false);
-              }
-
-              // Sync current page from target if available
-              try {
-                const target = flipbook.target || flipbook;
-                const newPage = target?.currentPage || target?.currentPageNum || flipbook?.currentPage;
-                const total = target?.totalPages || target?.pageCount || target?.pages?.length || flipbook?.totalPages;
-                if (typeof newPage === "number") {
-                  setCurrentPage(newPage);
-                  setInputValue(String(newPage));
-                }
-                if (typeof total === "number") {
-                  setTotalPages(total);
-                }
-              } catch (e) {
-                console.error("Page sync error:", e);
               }
             };
           }
@@ -109,11 +91,10 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       }
     };
     
-    // Start checking immediately
     setTimeout(checkReady, 500);
   }, []);
 
-  // Robust page sync: poll current/total pages while ready
+  // Polling for page updates
   useEffect(() => {
     if (!isReady) return;
     let rafId: number | null = null;
@@ -131,9 +112,7 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           target?.currentPageNum || 
           flipbook?._activePage ||
           flipbook?.currentPage ||
-          flipbook?.pageNumber ||
-          target?.getPageNumber?.() ||
-          flipbook?.getPageNumber?.();
+          flipbook?.pageNumber;
           
         const newTotal = target?.totalPages || target?.pageCount || target?.pages?.length || flipbook?.totalPages;
         
@@ -147,7 +126,7 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
           setTotalPages(newTotal);
         }
       } catch (e) {
-        console.error("Page sync error:", e);
+        // Silent fail for polling
       }
       rafId = window.requestAnimationFrame(tick);
     };
@@ -156,37 +135,17 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       if (rafId) cancelAnimationFrame(rafId);
     };
   }, [isReady]);
-  // Function to trigger dFlip toolbar actions
+
+  // Action Trigger Helper
   const triggerDFlipAction = (action: string) => {
-    if (!isReady) {
-      console.warn("Toolbar not ready yet. Please wait for initialization.");
-      return;
-    }
-
-    // Check if jQuery is available
-    if (!window.jQuery) {
-      console.warn("jQuery not loaded yet");
-      return;
-    }
-
-    // Get the global flipbook instance
+    if (!isReady || !window.jQuery) return;
     const flipbook = (window as any).currentFlipbook;
-    
-    if (!flipbook) {
-      console.warn("Flipbook instance not found. Please wait for initialization.");
-      return;
-    }
+    if (!flipbook) return;
 
-    
-    
-    try {
-      executeAction(action, flipbook);
-    } catch (error) {
-      console.error("Error executing action:", action, error);
-    }
+    executeAction(action, flipbook);
   };
 
-  // Helper to call the first available method path on the flipbook object
+  // Method Call Helper
   const callMethod = (flipbook: any, methodPaths: string[], args: any[] = []) => {
     for (const path of methodPaths) {
       const parts = path.split(".");
@@ -199,72 +158,42 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       if (typeof fn === "function") {
         try {
           return fn.apply(ctx, args);
-        } catch (e) {
-          // try next
-        }
+        } catch (e) {}
       }
     }
-    return undefined;
   };
 
-  // Function to toggle thumbnail sidebar
   const toggleThumbnailSidebar = (flipbook: any) => {
-    if (!window.jQuery) {
-      console.warn("jQuery not available for thumbnail toggle");
-      return;
-    }
-
     const $container = window.jQuery("#flipbookContainer");
     const $sidemenu = $container.find(".df-sidemenu");
-    
-    if ($sidemenu.length === 0) {
-      console.warn("No thumbnail sidebar elements found");
-      return;
-    }
+    if ($sidemenu.length === 0) return;
 
-    try {
-      const isCurrentlyOpen = $sidemenu.hasClass("df-sidemenu-visible");
-      
-      if (isCurrentlyOpen) {
-        $sidemenu.removeClass("df-sidemenu-visible");
-        setIsThumbnailVisible(false);
-      } else {
-        $sidemenu.addClass("df-sidemenu-visible");
-        setIsThumbnailVisible(true);
-        
-        // Ensure thumbnails are initialized
-        if (flipbook.contentProvider?.initThumbs) {
-          flipbook.contentProvider.initThumbs();
-        }
+    const isCurrentlyOpen = $sidemenu.hasClass("df-sidemenu-visible");
+    if (isCurrentlyOpen) {
+      $sidemenu.removeClass("df-sidemenu-visible");
+      setIsThumbnailVisible(false);
+    } else {
+      $sidemenu.addClass("df-sidemenu-visible");
+      setIsThumbnailVisible(true);
+      if (flipbook.contentProvider?.initThumbs) {
+        flipbook.contentProvider.initThumbs();
       }
-    } catch (error) {
-      console.error("Error toggling thumbnail sidebar:", error);
     }
   };
 
-  // Function to handle share action
   const handleShare = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
-      toast.success("Link copied to clipboard!");
-    }).catch(() => {
-      toast.error("Failed to copy link");
-    });
+    navigator.clipboard.writeText(window.location.href)
+      .then(() => toast.success("Link copied to clipboard!"))
+      .catch(() => toast.error("Failed to copy link"));
   };
 
-
-  // Separate function to execute the actual action
   const executeAction = (action: string, flipbook: any) => {
     switch (action) {
       case "zoomIn":
-        if (flipbook.zoom) {
-          flipbook.zoom(1);
-        }
+        if (flipbook.zoom) flipbook.zoom(1);
         break;
       case "zoomOut":
-        if (flipbook.zoom) {
-          flipbook.zoom(-1);
-        }
+        if (flipbook.zoom) flipbook.zoom(-1);
         break;
       case "prevPage":
         callMethod(flipbook, ["prev", "previous", "api.prevPage", "target.prevPage", "ui.prev"]);
@@ -273,9 +202,7 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
         callMethod(flipbook, ["next", "api.nextPage", "target.nextPage", "ui.next"]);
         break;
       case "fitToScreen":
-        if (flipbook.target && flipbook.target.fitToScreen) {
-          flipbook.target.fitToScreen();
-        }
+        if (flipbook.target?.fitToScreen) flipbook.target.fitToScreen();
         break;
       case "download":
         if (pdfUrl) {
@@ -288,22 +215,13 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
         }
         break;
       case "fullscreen":
-        // Try dFlip methods first
-        if (callMethod(flipbook, ["switchFullscreen", "ui.fullscreen", "target.switchFullscreen"]) !== undefined) {
-          break;
-        }
-        // Fallback: use browser Fullscreen API on the container
-        try {
+        if (callMethod(flipbook, ["switchFullscreen", "ui.fullscreen", "target.switchFullscreen"]) === undefined) {
           const container = document.getElementById("flipbookContainer");
-          const isFs = !!document.fullscreenElement;
-          if (!isFs) {
+          if (!document.fullscreenElement) {
             (container as any)?.requestFullscreen?.();
           } else {
             (document as any).exitFullscreen?.();
           }
-        } catch (e) {
-          console.error("Fullscreen not supported", e);
-          toast.error("Fullscreen not supported in this browser");
         }
         break;
       case "grid":
@@ -311,48 +229,19 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
         break;
       case "togglePageMode": {
         const target = flipbook.target || flipbook;
-        if (!target) {
-          console.warn("⚠️ Cannot toggle page mode: flipbook target missing.");
-          break;
+        if (!target) break;
+        const newSingle = !(target.pageMode === 1);
+        
+        if (flipbook.ui?.setPageMode) {
+          flipbook.ui.setPageMode(newSingle);
+        } else {
+          target.pageMode = newSingle ? 1 : 2;
+          if (flipbook.resize) flipbook.resize();
         }
-
-        // dFlip constants: 1=SINGLE, 2=DOUBLE
-        const currentlySingle = target.pageMode === 1;
-        const newSingle = !currentlySingle;
-
-        try {
-          // Use UI helper if available (updates button state and resizes)
-          if (flipbook.ui?.setPageMode) {
-            flipbook.ui.setPageMode(newSingle);
-          } else {
-            // Fallback: set pageMode directly and resize
-            target.pageMode = newSingle ? 1 : 2;
-            
-            // Try multiple methods to force refresh
-            if (typeof flipbook.resize === "function") {
-              flipbook.resize();
-            }
-            if (typeof target.resize === "function") {
-              target.resize();
-            }
-            if (typeof target.refresh === "function") {
-              target.refresh();
-            }
-            if (typeof flipbook.refresh === "function") {
-              flipbook.refresh();
-            }
-          }
-
-          setIsSinglePage(newSingle);
-          toast.success(`Switched to ${newSingle ? "single" : "double"} page mode`);
-        } catch (e) {
-          console.error("Error toggling page mode", e);
-          toast.error("Failed to toggle page mode");
-        }
+        setIsSinglePage(newSingle);
+        toast.success(`Switched to ${newSingle ? "single" : "double"} page mode`);
         break;
       }
-      default:
-        console.log(`Action ${action} not implemented`);
     }
   };
 
@@ -368,120 +257,106 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
     callMethod(flipbook, ["gotoPage", "api.gotoPage", "target.gotoPage"], [pageNum]);
   };
 
+  // UPDATED: Fixed positioning at bottom center for ALL screens
   return (
-    <div className={`rounded-[1.5rem] bg-white/80 shadow-xl flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 backdrop-blur-sm ${!isReady ? 'opacity-50 pointer-events-none' : ''}`}>
+    <div className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 
+      rounded-[1.5rem] bg-white/90 shadow-2xl border border-gray-200/50
+      flex items-center gap-1.5 sm:gap-2 px-3 py-2 
+      backdrop-blur-md transition-all duration-300 ease-in-out
+      ${!isReady ? 'opacity-50 translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0'}
+    `}>
+      
       {/* Grid Icon */}
       <button 
         type="button" 
-        className={`${isThumbnailVisible // --- USES LOCAL STATE ---
-          ? 'bg-blue-500 hover:bg-blue-600 text-white border-blue-500' 
-          : 'bg-white hover:bg-gray-100 text-gray-600 border-gray-200'
-        } rounded-full flex items-center justify-center w-9 h-9 transition-colors border`}
-        title={isThumbnailVisible ? "Hide Thumbnails" : "Show Thumbnails"} // --- USES LOCAL STATE ---
+        className={`${isThumbnailVisible 
+          ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+          : 'bg-transparent hover:bg-gray-100 text-gray-600'
+        } rounded-full flex items-center justify-center w-9 h-9 transition-colors`}
+        title={isThumbnailVisible ? "Hide Thumbnails" : "Show Thumbnails"}
         onClick={() => triggerDFlipAction("grid")}
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
       </button>
-      {/* Fullscreen */}
-      <button 
-        type="button" 
-        className={btnClass} 
-        title="Fullscreen"
-        onClick={() => triggerDFlipAction("fullscreen")}
-      >
-        <Fullscreen className={iconClass} />
-      </button>
-      {/* Prev Page */}
-      <button 
-        type="button" 
-        className={btnClass} 
-        title="Previous Page"
-        onClick={() => triggerDFlipAction("prevPage")}
-      >
-        <svg className={iconClass} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      {/* Plus/Zoom In Icon */}
-      <button 
-        type="button" 
-        className={btnClass} 
-        title="Zoom In"
-        onClick={() => triggerDFlipAction("zoomIn")}
-      >
-        <svg className={iconClass} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-      </button>
-      {/* Minus/Zoom Out Icon */}
-      <button 
-        type="button" 
-        className={btnClass} 
-        title="Zoom Out"
-        onClick={() => triggerDFlipAction("zoomOut")}
-      >
-        <svg className={iconClass} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-      </button>
-      {/* Page Input */}
-      <form onSubmit={handlePageSubmit} className="flex items-center gap-1">
-        <Input
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          className="w-12 h-8 text-center"
-        />
-        <span className="text-xs text-gray-500">/ {totalPages || "?"}</span>
-      </form>
-      {/* Next Page */}
-      <button 
-        type="button" 
-        className={btnClass} 
-        title="Next Page"
-        onClick={() => triggerDFlipAction("nextPage")}
-      >
-        <svg className={iconClass} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-      {/* Fit/Center Icon */}
-      <button 
-        type="button" 
-        className={btnClass} 
-        title="Fit to Screen"
-        onClick={() => triggerDFlipAction("fitToScreen")}
-      >
-        <svg className={iconClass} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m0 6v4a2 2 0 0 0 2 2h4m6-16h4a2 2 0 0 1 2 2v4m0 6v4a2 2 0 0 1-2 2h-4"/></svg>
-      </button>
-      {/* Download Icon */}
-      <button 
-        type="button" 
-        className={btnClass} 
-        title="Download"
-        onClick={() => triggerDFlipAction("download")}
-      >
-        <svg className={iconClass} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      </button>
-      {/* Share Icon */}
-      <button 
-        type="button" 
-        className={btnClass} 
-        title="Share"
-        onClick={handleShare}
-      >
-        <Share2 className={iconClass} />
-      </button>
 
-      {/* More Options Dropdown */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button 
-            type="button" 
-            className={btnClass} 
-            title="More"
-          >
-            <svg className={iconClass} fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="mb-2 w-48" align="end">
-          <DropdownMenuItem onClick={() => triggerDFlipAction("togglePageMode")}>
-            <RectangleHorizontal className="w-4 h-4 mr-2" />
-            <span>{isSinglePage ? "Show Double Page" : "Show Single Page"}</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="h-4 w-px bg-gray-200 mx-1" />
+
+      {/* Navigation Group */}
+      <div className="flex items-center gap-1">
+        <button 
+          type="button" 
+          className={btnClass} 
+          title="Previous Page"
+          onClick={() => triggerDFlipAction("prevPage")}
+        >
+          <svg className={iconClass} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+
+        {/* Page Input */}
+        <form onSubmit={handlePageSubmit} className="flex items-center mx-1">
+          <Input
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            className="w-12 h-8 text-center text-sm px-1 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+          />
+          <span className="text-xs text-gray-500 font-medium ml-1.5 w-max">/ {totalPages || "--"}</span>
+        </form>
+
+        <button 
+          type="button" 
+          className={btnClass} 
+          title="Next Page"
+          onClick={() => triggerDFlipAction("nextPage")}
+        >
+          <svg className={iconClass} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
+      <div className="h-4 w-px bg-gray-200 mx-1" />
+
+      {/* Zoom Group */}
+      <div className="flex items-center gap-1 hidden sm:flex">
+        <button type="button" className={btnClass} onClick={() => triggerDFlipAction("zoomOut")}>
+          <svg className={iconClass} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        </button>
+        <button type="button" className={btnClass} onClick={() => triggerDFlipAction("zoomIn")}>
+          <svg className={iconClass} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        </button>
+      </div>
+
+      {/* Actions Group */}
+      <div className="flex items-center gap-1">
+        <button type="button" className={btnClass} onClick={() => triggerDFlipAction("fitToScreen")} title="Fit to Screen">
+          <svg className={iconClass} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m0 6v4a2 2 0 0 0 2 2h4m6-16h4a2 2 0 0 1 2 2v4m0 6v4a2 2 0 0 1-2 2h-4"/></svg>
+        </button>
+        
+        <button type="button" className={btnClass} onClick={() => triggerDFlipAction("fullscreen")} title="Fullscreen">
+          <Fullscreen className={iconClass} />
+        </button>
+
+        {/* Dropdown for extras */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className={btnClass} title="More">
+              <svg className={iconClass} fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="mb-4 w-56" align="center" sideOffset={10}>
+            <DropdownMenuItem onClick={() => triggerDFlipAction("togglePageMode")}>
+              <RectangleHorizontal className="w-4 h-4 mr-2" />
+              <span>{isSinglePage ? "Switch to Double Page" : "Switch to Single Page"}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => triggerDFlipAction("download")}>
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Download PDF</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleShare}>
+              <Share2 className="w-4 h-4 mr-2" />
+              <span>Share Link</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 }
