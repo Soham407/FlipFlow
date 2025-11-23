@@ -222,7 +222,7 @@ html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  background-color: #E3E3E3;
+  background-color: #EDEDED;
 }
 
 /* Prevent bounce scrolling on mobile without blocking normal scroll */
