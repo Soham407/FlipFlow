@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { trackFlipbookView, trackTimeSpent } from "@/lib/analytics";
 import { getR2PublicUrl } from "@/lib/r2";
 import ViewerToolbar from "../components/ViewerToolbar";
+import MobileViewerToolbar from "../components/MobileViewerToolbar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DflipViewer } from "@/components/DflipViewer";
 import type { Flipbook } from "@/types";
@@ -113,8 +114,14 @@ const Viewer = () => {
         </Button>
       )}
 
-      {/* Unified Toolbar */}
-      <ViewerToolbar pdfUrl={publicUrl} />
+      {/* Conditional Toolbar: Mobile or Desktop */}
+      {isMobile ? (
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
+          <MobileViewerToolbar pdfUrl={publicUrl} />
+        </div>
+      ) : (
+        <ViewerToolbar pdfUrl={publicUrl} />
+      )}
 
       <main className="flex-1 overflow-hidden">
         <DflipViewer
