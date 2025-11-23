@@ -93,7 +93,7 @@ const Viewer = () => {
   const readingPercent = totalPages > 0 ? Math.min(100, Math.round((currentPage / totalPages) * 100)) : 0;
 
   return (
-    <div className="flex flex-col h-[100dvh] relative bg-black/5">
+    <div className="flex flex-col h-[100dvh] relative bg-neutral-900 overflow-hidden">
       {/* Desktop Header */}
       {!isMobile && (
         <header className="flex items-center justify-between px-4 py-3 bg-background border-b z-30">

@@ -191,7 +191,7 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
   }
 
   return (
-    <div className="relative w-full h-full min-h-[600px]">
+    <div className="relative w-full h-full">
       {(!scriptsReady || !isReady) && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-2xl space-y-4">

@@ -216,3 +216,12 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Ensure the root doesn't force white background on mobile */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* vital for immersive feel */
+  background-color: #171717; /* matches neutral-900 */
+}
