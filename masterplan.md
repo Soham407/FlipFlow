@@ -127,19 +127,29 @@ The business model is freemium, based on the provided CSV file:
 
 ## 9. Development Milestones
 
-* **Milestone 1: Core MVP (90% Complete)**
+* **Milestone 1: Core MVP (✅ Complete)**
     * [x] User Auth
-    * [x] PDF Upload & Storage (Supabase)
+    * [x] PDF Upload & Storage
     * [x] Client-side Flipbook Viewer
     * [x] Public Sharing
     * [x] User Dashboard
     * [x] Subscription & Payment Logic
-* **Milestone 2: Launch Readiness (Required Next Steps)**
-    * [ ] **(High Priority)** Refactor file handling logic to use Cloudflare R2 instead of Supabase Storage. This includes upload, delete, and read operations.
-    * [ ] **(High Priority)** Perform a one-time migration of any existing files from Supabase Storage to the new R2 bucket.
-    * [ ] Complete the Analytics dashboard to show `flipbook_views` data.
-    * [ ] Thoroughly test the payment and subscription flow.
-    * [ ] Finalize UI/UX polishing and mobile responsiveness checks.
+    * [x] Analytics Dashboard (View tracking & visualization)
+    * [x] **Cloudflare R2 Migration** (Successfully migrated from Supabase Storage)
+* **Milestone 2: Code Quality & Architecture (In Progress)**
+    * [x] Create shared TypeScript types (`src/types/index.ts`)
+    * [x] Create configuration constants (`src/config/constants.ts`)
+    * [x] Implement `ProtectedRoute` wrapper for secure routing
+    * [x] Refactor all components to use shared types
+    * [ ] **(In Progress)** Extract Dashboard business logic into custom hooks
+        * [ ] Create `useFlipbooks` hook
+        * [ ] Create `useFileUpload` hook
+        * [ ] Create `useSubscription` hook
+    * [ ] Refactor Dashboard.tsx to use extracted hooks
+* **Milestone 3: Launch Readiness (Next Steps)**
+    * [ ] Thoroughly test the payment and subscription flow
+    * [ ] Finalize UI/UX polishing and mobile responsiveness checks
+    * [ ] Performance optimization and SEO improvements
 
 ## 10. Potential Challenges and Solutions
 
@@ -147,8 +157,8 @@ The business model is freemium, based on the provided CSV file:
     * **Solution:** This is why the file size limits per plan are smart. For future "Pro" tiers, we could explore server-side PDF optimization or pre-rendering (e.g., converting PDF pages to images) upon upload, but this adds complexity.
 * **Challenge:** `dflip.js` is a third-party library. It might have bugs or limitations.
     * **Solution:** Be familiar with its documentation. For the future, we could explore other viewer libraries if `dflip.js` becomes too restrictive.
-* **Challenge:** Scaling costs for file storage and bandwidth.
-    * **Solution:** The **planned and required migration to Cloudflare R2** is the designated solution for this. It's designed for high-volume, low-cost object storage, decoupling file bandwidth costs from the Supabase platform.
+* **Challenge:** ~~Scaling costs for file storage and bandwidth.~~
+    * **✅ Solution Implemented:** Successfully migrated to **Cloudflare R2** for high-volume, low-cost object storage, decoupling file bandwidth costs from the Supabase platform.
 
 ## 11. Future Expansion Possibilities
 
