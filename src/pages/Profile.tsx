@@ -10,16 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, User, Mail, Upload } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
-
-interface Profile {
-  id: string;
-  user_id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  bio: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import type { Profile } from "@/types";
 
 const Profile = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -32,22 +23,17 @@ const Profile = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Session is now handled by ProtectedRoute
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (!session) {
-        navigate("/login");
-      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (!session) {
-        navigate("/login");
-      }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
     if (session) {

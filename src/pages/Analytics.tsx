@@ -15,17 +15,7 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface ViewEvent {
-  id: string;
-  flipbook_id: string;
-  user_id: string | null;
-  viewed_at: string;
-  ip_address: string | null;
-  user_agent: string | null;
-  time_spent_seconds?: number | null;
-  session_id?: string | null;
-}
+import type { ViewEvent } from "@/types";
 
 const Analytics = () => {
   const { id } = useParams<{ id: string }>();

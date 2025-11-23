@@ -2,15 +2,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Eye, Trash2, Copy, BarChart2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-interface Flipbook {
-  id: string;
-  title: string;
-  file_path: string;
-  created_at: string;
-  slug?: string;
-  is_public?: boolean;
-}
+import type { Flipbook } from "@/types";
 
 interface FlipbookCardProps {
   flipbook: Flipbook;

@@ -11,14 +11,7 @@ import ViewerToolbar from "../components/ViewerToolbar";
 import MobileViewerToolbar from "../components/MobileViewerToolbar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DflipViewer } from "@/components/DflipViewer";
-
-interface Flipbook {
-  id: string;
-  title: string;
-  file_path: string;
-  is_public?: boolean;
-  slug?: string;
-}
+import type { Flipbook } from "@/types";
 
 const Viewer = () => {
   const { id } = useParams();

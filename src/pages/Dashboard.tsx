@@ -22,15 +22,8 @@ import { StatsCards } from "@/components/dashboard/StatsCards";
 import { FlipbookCard } from "@/components/dashboard/FlipbookCard";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
-
-interface Flipbook {
-  id: string;
-  title: string;
-  file_path: string;
-  created_at: string;
-  slug?: string;
-  is_public?: boolean;
-}
+import type { Flipbook, UserRole } from "@/types";
+import { PLANS, PAYMENT } from "@/config/constants";
 
 const Dashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -40,29 +33,24 @@ const Dashboard = () => {
   const [flipbooks, setFlipbooks] = useState<Flipbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [userRole, setUserRole] = useState<'free' | 'pro'>('free');
+  const [userRole, setUserRole] = useState<UserRole>('free');
   const [processingPayment, setProcessingPayment] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Session is now handled by ProtectedRoute, just get it for component state
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (!session) {
-        navigate("/login");
-      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (!session) {
-        navigate("/login");
-      }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
     if (session) {
@@ -120,7 +108,7 @@ const Dashboard = () => {
 
       if (roleData) {
         console.log('User role found:', roleData.role);
-        setUserRole(roleData.role as 'free' | 'pro');
+        setUserRole(roleData.role as UserRole);
       } else {
         console.log('No role found, creating default free role');
         // No role found, create a default free role
@@ -199,17 +187,16 @@ const Dashboard = () => {
     
     if (!session) return;
 
-    // Check flipbook limit
-    const maxFlipbooks = userRole === 'pro' ? Infinity : 3;
-    if (flipbooks.length >= maxFlipbooks) {
-      toast.error(`Free users can only create ${maxFlipbooks} flipbooks. Upgrade to Pro for unlimited flipbooks!`);
+    // Check flipbook limit using constants
+    const planLimits = PLANS[userRole.toUpperCase() as keyof typeof PLANS];
+    if (flipbooks.length >= planLimits.maxFlipbooks) {
+      toast.error(`${PLANS.FREE.name} users can only create ${PLANS.FREE.maxFlipbooks} flipbooks. Upgrade to Pro for unlimited flipbooks!`);
       return;
     }
 
-    // Check file size
-    const maxFileSize = userRole === 'pro' ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB pro, 10MB free
-    if (file.size > maxFileSize) {
-      toast.error(`Maximum file size is ${userRole === 'pro' ? '50MB' : '10MB'}. ${userRole === 'free' ? 'Upgrade to Pro for 50MB limit!' : ''}`);
+    // Check file size using constants
+    if (file.size > planLimits.maxFileSizeBytes) {
+      toast.error(`Maximum file size is ${planLimits.maxFileSizeMB}MB. ${userRole === 'free' ? `Upgrade to Pro for ${PLANS.PRO.maxFileSizeMB}MB limit!` : ''}`);
       return;
     }
 
@@ -292,7 +279,7 @@ const Dashboard = () => {
   const initializeRazorpay = () => {
     return new Promise((resolve) => {
       const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.src = PAYMENT.RAZORPAY_SCRIPT_URL;
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
@@ -319,7 +306,7 @@ const Dashboard = () => {
         amount: orderData.amount,
         currency: orderData.currency,
         name: "FlipFlow",
-        description: "Pro Subscription - ₹100/month",
+        description: `Pro Subscription - ₹${PAYMENT.PRO_PLAN_PRICE_INR}/month`,
         order_id: orderData.orderId,
         handler: async (response: any) => {
           try {
@@ -468,7 +455,7 @@ const Dashboard = () => {
                   <DialogTitle>Upload New Flipbook</DialogTitle>
                   <DialogDescription>
                     Upload a PDF file to create a new flipbook. 
-                    {userRole === 'free' && ` (${3 - flipbooks.length} uploads remaining)`}
+                    {userRole === 'free' && ` (${PLANS.FREE.maxFlipbooks - flipbooks.length} uploads remaining)`}
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleUpload}>
@@ -505,7 +492,7 @@ const Dashboard = () => {
                             <div>
                               <p className="font-medium text-foreground">Drop your PDF here or click to browse</p>
                               <p className="text-sm text-muted-foreground mt-1">
-                                Maximum file size: {userRole === 'pro' ? '50MB' : '10MB'}
+                                Maximum file size: {PLANS[userRole.toUpperCase() as keyof typeof PLANS].maxFileSizeMB}MB
                               </p>
                             </div>
                           )}
