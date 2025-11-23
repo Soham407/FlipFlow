@@ -90,6 +90,10 @@ const Viewer = () => {
   useEffect(() => {
     if (!isMobile) return;
 
+    let overlay: HTMLElement | null = null;
+    let observer: MutationObserver | null = null;
+    let cleanupFn: (() => void) | null = null;
+
     const setupOverlay = () => {
       const container = document.getElementById("flipbookContainer");
       if (!container || !(window as any).jQuery) return;
@@ -98,16 +102,17 @@ const Viewer = () => {
       const $sidemenu = $container.find(".df-sidemenu");
       if (!$sidemenu.length) return;
 
-      // Check if overlay already exists, create if not
-      let overlay = container.querySelector(".df-sidemenu-overlay") as HTMLElement;
+      // Create overlay at body level for proper z-index stacking
+      overlay = document.body.querySelector(".df-sidemenu-overlay") as HTMLElement;
       if (!overlay) {
         overlay = document.createElement("div");
         overlay.className = "df-sidemenu-overlay";
-        container.appendChild(overlay);
+        document.body.appendChild(overlay);
       }
 
-      // Click handler to close sidebar
-      const handleClick = (e: MouseEvent) => {
+      // Click/touch handler to close sidebar
+      const handleClick = (e: MouseEvent | TouchEvent) => {
+        e.preventDefault();
         e.stopPropagation();
         const $currentSidemenu = $container.find(".df-sidemenu");
         if ($currentSidemenu.hasClass("df-sidemenu-visible")) {
@@ -116,9 +121,11 @@ const Viewer = () => {
       };
 
       overlay.addEventListener("click", handleClick);
+      overlay.addEventListener("touchend", handleClick);
 
-      // Watch for sidebar visibility changes
-      const observer = new MutationObserver(() => {
+      // Function to update overlay visibility
+      const updateOverlay = () => {
+        if (!overlay) return;
         const isVisible = $sidemenu.hasClass("df-sidemenu-visible");
         if (isVisible) {
           overlay.style.opacity = "1";
@@ -129,30 +136,121 @@ const Viewer = () => {
           overlay.style.visibility = "hidden";
           overlay.style.pointerEvents = "none";
         }
-      });
+      };
+
+      // Document-level click handler as backup (only active when sidebar is open)
+      let documentClickHandler: ((e: MouseEvent | TouchEvent) => void) | null = null;
+      
+      const enableDocumentClick = () => {
+        if (documentClickHandler) return; // Already enabled
+        documentClickHandler = (e: MouseEvent | TouchEvent) => {
+          const target = e.target as HTMLElement;
+          // Don't close if clicking on sidebar, toolbar, or overlay
+          if (
+            target.closest(".df-sidemenu") ||
+            target.closest("[class*='toolbar']") ||
+            target.closest(".df-sidemenu-overlay") ||
+            target.closest("button")
+          ) {
+            return;
+          }
+          const $currentSidemenu = $container.find(".df-sidemenu");
+          if ($currentSidemenu.hasClass("df-sidemenu-visible")) {
+            $currentSidemenu.removeClass("df-sidemenu-visible");
+          }
+        };
+        document.addEventListener("click", documentClickHandler, true);
+        document.addEventListener("touchend", documentClickHandler, true);
+      };
+
+      const disableDocumentClick = () => {
+        if (documentClickHandler) {
+          document.removeEventListener("click", documentClickHandler, true);
+          document.removeEventListener("touchend", documentClickHandler, true);
+          documentClickHandler = null;
+        }
+      };
+
+      // Enhanced update function that also manages document click handler
+      const updateOverlayEnhanced = () => {
+        updateOverlay();
+        const isVisible = $sidemenu.hasClass("df-sidemenu-visible");
+        if (isVisible) {
+          enableDocumentClick();
+        } else {
+          disableDocumentClick();
+        }
+      };
+
+      // Watch for sidebar visibility changes
+      observer = new MutationObserver(updateOverlayEnhanced);
 
       observer.observe($sidemenu[0], {
         attributes: true,
         attributeFilter: ["class"]
       });
 
-      return () => {
-        observer.disconnect();
-        overlay.removeEventListener("click", handleClick);
+      // Also listen for clicks on the grid button to update overlay
+      const handleGridButtonClick = () => {
+        setTimeout(updateOverlayEnhanced, 100); // Small delay to let class change
+      };
+
+      // Find grid buttons and add listeners
+      const gridButtons = document.querySelectorAll('[title*="Thumbnail"], [title*="thumbnail"], [title*="Grid"], [title*="grid"]');
+      const gridButtonListeners: Array<{ element: Element; handler: () => void }> = [];
+      gridButtons.forEach(btn => {
+        btn.addEventListener('click', handleGridButtonClick);
+        gridButtonListeners.push({ element: btn, handler: handleGridButtonClick });
+      });
+
+      // Initial check
+      updateOverlayEnhanced();
+
+      // Periodic check as fallback
+      const checkInterval = setInterval(updateOverlayEnhanced, 500);
+
+      cleanupFn = () => {
+        if (observer) {
+          observer.disconnect();
+          observer = null;
+        }
+        if (checkInterval) clearInterval(checkInterval);
+        disableDocumentClick();
+        if (overlay) {
+          overlay.removeEventListener("click", handleClick);
+          overlay.removeEventListener("touchend", handleClick);
+        }
+        gridButtonListeners.forEach(({ element, handler }) => {
+          element.removeEventListener('click', handler);
+        });
       };
     };
 
     // Wait for container and jQuery to be ready
-    const checkInterval = setInterval(() => {
+    let checkInterval: NodeJS.Timeout | null = null;
+    let retries = 0;
+    const maxRetries = 30; // 9 seconds max
+
+    const checkReady = () => {
       if ((window as any).jQuery && document.getElementById("flipbookContainer")) {
-        clearInterval(checkInterval);
-        const cleanup = setupOverlay();
-        return cleanup;
+        if (checkInterval) clearInterval(checkInterval);
+        setupOverlay();
+      } else if (retries < maxRetries) {
+        retries++;
+      } else {
+        if (checkInterval) clearInterval(checkInterval);
       }
-    }, 300);
+    };
+
+    checkInterval = setInterval(checkReady, 300);
+    checkReady(); // Try immediately
 
     return () => {
-      clearInterval(checkInterval);
+      if (checkInterval) clearInterval(checkInterval);
+      if (cleanupFn) cleanupFn();
+      if (overlay && overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
     };
   }, [isMobile, flipbook]);
 

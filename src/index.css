@@ -60,12 +60,15 @@
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  background-color: rgba(0, 0, 0, 0.3) !important;
-  z-index: 35 !important; /* Below sidebar (40) and toolbar (50) */
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  z-index: 39 !important; /* Just below sidebar (40) and toolbar (50) */
   opacity: 0 !important;
   visibility: hidden !important;
   transition: opacity 0.3s ease, visibility 0.3s ease !important;
   pointer-events: none !important;
+  touch-action: none !important; /* Prevent scrolling when overlay is active */
 }
 
 /* Prevent container from shifting when sidebar is open */
