@@ -86,6 +86,76 @@ const Viewer = () => {
     };
   }, [flipbook]);
 
+  // Handle click-outside-to-close for mobile thumbnail sidebar
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const setupOverlay = () => {
+      const container = document.getElementById("flipbookContainer");
+      if (!container || !(window as any).jQuery) return;
+
+      const $container = (window as any).jQuery(container);
+      const $sidemenu = $container.find(".df-sidemenu");
+      if (!$sidemenu.length) return;
+
+      // Check if overlay already exists, create if not
+      let overlay = container.querySelector(".df-sidemenu-overlay") as HTMLElement;
+      if (!overlay) {
+        overlay = document.createElement("div");
+        overlay.className = "df-sidemenu-overlay";
+        container.appendChild(overlay);
+      }
+
+      // Click handler to close sidebar
+      const handleClick = (e: MouseEvent) => {
+        e.stopPropagation();
+        const $currentSidemenu = $container.find(".df-sidemenu");
+        if ($currentSidemenu.hasClass("df-sidemenu-visible")) {
+          $currentSidemenu.removeClass("df-sidemenu-visible");
+        }
+      };
+
+      overlay.addEventListener("click", handleClick);
+
+      // Watch for sidebar visibility changes
+      const observer = new MutationObserver(() => {
+        const isVisible = $sidemenu.hasClass("df-sidemenu-visible");
+        if (isVisible) {
+          overlay.style.opacity = "1";
+          overlay.style.visibility = "visible";
+          overlay.style.pointerEvents = "auto";
+        } else {
+          overlay.style.opacity = "0";
+          overlay.style.visibility = "hidden";
+          overlay.style.pointerEvents = "none";
+        }
+      });
+
+      observer.observe($sidemenu[0], {
+        attributes: true,
+        attributeFilter: ["class"]
+      });
+
+      return () => {
+        observer.disconnect();
+        overlay.removeEventListener("click", handleClick);
+      };
+    };
+
+    // Wait for container and jQuery to be ready
+    const checkInterval = setInterval(() => {
+      if ((window as any).jQuery && document.getElementById("flipbookContainer")) {
+        clearInterval(checkInterval);
+        const cleanup = setupOverlay();
+        return cleanup;
+      }
+    }, 300);
+
+    return () => {
+      clearInterval(checkInterval);
+    };
+  }, [isMobile, flipbook]);
+
   if (loading || !flipbook || !publicUrl) {
     return <div className="flex min-h-screen items-center justify-center"><Card><CardContent className="py-8"><p className="text-muted-foreground">Loading...</p></CardContent></Card></div>;
   }
