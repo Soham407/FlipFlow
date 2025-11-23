@@ -93,7 +93,7 @@ const Viewer = () => {
   const readingPercent = totalPages > 0 ? Math.min(100, Math.round((currentPage / totalPages) * 100)) : 0;
 
   return (
-    <div className="flex flex-col h-screen relative">
+    <div className="flex flex-col h-[100dvh] relative bg-black/5">
       {/* Desktop Header */}
       {!isMobile && (
         <header className="flex items-center justify-between px-4 py-3 bg-background border-b z-30">
@@ -114,16 +114,20 @@ const Viewer = () => {
         </Button>
       )}
 
-      {/* Conditional Toolbar: Mobile or Desktop */}
-      {isMobile ? (
-        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
-          <MobileViewerToolbar pdfUrl={publicUrl} />
+      {/* 📱 MOBILE TOOLBAR: NOW FLOATING ABSOLUTELY */}
+      {isMobile && (
+        <div className="absolute top-16 left-4 right-4 z-50 pointer-events-none">
+          <div className="pointer-events-auto">
+            <MobileViewerToolbar pdfUrl={publicUrl} />
+          </div>
         </div>
-      ) : (
-        <ViewerToolbar pdfUrl={publicUrl} />
       )}
 
-      <main className="flex-1 overflow-hidden">
+      {/* Desktop Toolbar */}
+      {!isMobile && <ViewerToolbar pdfUrl={publicUrl} />}
+
+      {/* Main Viewer Area - NOW FILLS THE WHOLE SCREEN BEHIND THE TOOLBAR */}
+      <main className="flex-1 overflow-hidden relative z-0">
         <DflipViewer
           pdfUrl={publicUrl}
           flipbookId={flipbook.id}
