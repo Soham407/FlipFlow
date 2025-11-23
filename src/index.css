@@ -223,5 +223,5 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden; /* vital for immersive feel */
-  background-color: #171717; /* matches neutral-900 */
+  background-color: #E3E3E3; /* matches neutral-900 */
 }
