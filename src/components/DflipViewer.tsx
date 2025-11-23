@@ -8,6 +8,7 @@ interface DflipViewerProps {
   flipbookId: string;
   onReady?: () => void;
   onProgress?: (progress: number) => void;
+  onPageChange?: (current: number, total: number) => void; // page change callback
 }
 
 declare global {
@@ -23,13 +24,16 @@ declare global {
   }
 }
 
-export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress }: DflipViewerProps) => {
+export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageChange }: DflipViewerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scriptsReady, setScriptsReady] = useState(false);
   const [scriptError, setScriptError] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isReady, setIsReady] = useState(false);
   const flipbookInitialized = useRef(false);
+  const pagePollRef = useRef<number | null>(null);
+  const lastPageRef = useRef<number>(-1);
+  const lastTotalRef = useRef<number>(-1);
 
   // Check if dflip scripts are loaded
   useEffect(() => {
@@ -70,11 +74,15 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress }: DflipVi
       console.log('PDF ready in viewer');
       setIsReady(true);
       onReady?.();
+
+      // Begin polling pages once ready
+      startPagePolling();
     };
 
     return () => {
       delete window.onPdfProgress;
       delete window.onPdfReady;
+      stopPagePolling();
     };
   }, [scriptsReady, onReady, onProgress]);
 
@@ -115,6 +123,40 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress }: DflipVi
     };
   }, [scriptsReady, pdfUrl, flipbookId]);
 
+  // Start/Stop page polling helpers
+  const pollPages = () => {
+    try {
+      if (!containerRef.current) return;
+      const $container = (window as any).jQuery?.(containerRef.current);
+      const flipbook = $container?.data('dflip');
+      const target = flipbook?.target || flipbook;
+      // Heuristic property discovery for page numbers
+      const current = target?._activePage ?? target?.currentPage ?? target?.currentPageNum ?? flipbook?.currentPage ?? flipbook?.pageNumber;
+      const total = target?.totalPages ?? target?.pageCount ?? target?.pages?.length ?? flipbook?.totalPages;
+      if (typeof current === 'number' && typeof total === 'number') {
+        if (current !== lastPageRef.current || total !== lastTotalRef.current) {
+          lastPageRef.current = current;
+          lastTotalRef.current = total;
+          onPageChange?.(current, total);
+        }
+      }
+    } catch {
+      // silent
+    }
+  };
+
+  const startPagePolling = () => {
+    if (pagePollRef.current) return;
+    pagePollRef.current = window.setInterval(pollPages, 500);
+  };
+
+  const stopPagePolling = () => {
+    if (pagePollRef.current) {
+      window.clearInterval(pagePollRef.current);
+      pagePollRef.current = null;
+    }
+  };
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -132,6 +174,7 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress }: DflipVi
         }
         flipbookInitialized.current = false;
       }
+      stopPagePolling();
     };
   }, []); 
 
@@ -149,18 +192,17 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress }: DflipVi
 
   return (
     <div className="relative w-full h-full min-h-[600px]">
-      {/* Loading Overlay - shows on top of the hidden container */}
       {(!scriptsReady || !isReady) && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background p-4">
-          <div className="w-full max-w-3xl space-y-4">
-            <Skeleton className="w-full h-[500px] rounded-lg" />
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl space-y-4">
+            <Skeleton className="w-full h-[420px] rounded-lg" />
             <div className="space-y-2">
-              <div className="flex justify-between text-sm text-muted-foreground">
+              <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
                 <span>Loading flipbook...</span>
                 <span>{loadingProgress}%</span>
               </div>
-              <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-                <div 
+              <div className="w-full bg-secondary/40 rounded-full h-2 overflow-hidden">
+                <div
                   className="bg-primary h-full transition-all duration-300"
                   style={{ width: `${loadingProgress}%` }}
                 />
@@ -169,13 +211,11 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress }: DflipVi
           </div>
         </div>
       )}
-
-      {/* The actual Flipbook Container - VISIBLE but potentially empty or hidden by overlay */}
-      <div 
+      <div
         ref={containerRef}
         id="flipbookContainer"
         className="w-full h-full"
-        style={{ visibility: (!scriptsReady || !isReady) ? 'hidden' : 'visible' }} 
+        style={{ visibility: (!scriptsReady || !isReady) ? 'hidden' : 'visible' }}
       />
     </div>
   );
