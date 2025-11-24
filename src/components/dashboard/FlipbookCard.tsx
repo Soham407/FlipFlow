@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { Flipbook } from "@/types";
 import { formatDistanceToNow } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 interface FlipbookCardProps {
   flipbook: Flipbook;
@@ -52,6 +52,11 @@ export function FlipbookCard({ flipbook, onDelete, onCopyEmbed }: FlipbookCardPr
               <DropdownMenuItem onClick={() => onCopyEmbed(flipbook)}>
                 <Copy className="mr-2 h-4 w-4" /> Copy Embed
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href={`/view/${identifier}`} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="mr-2 h-4 w-4" /> Open Public Link
+                </a>
+              </DropdownMenuItem>
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive" 
                 onClick={() => onDelete(flipbook.id)}
@@ -71,10 +76,9 @@ export function FlipbookCard({ flipbook, onDelete, onCopyEmbed }: FlipbookCardPr
 
       <CardFooter className="p-4 pt-0">
         <Button asChild className="w-full" variant="outline">
-          <a href={`/view/${identifier}`} target="_blank" rel="noopener noreferrer">
+          <Link to={`/view/${identifier}`}>
             <Eye className="mr-2 h-4 w-4" /> View Flipbook
-            <ExternalLink className="ml-2 h-3 w-3 opacity-50" />
-          </a>
+          </Link>
         </Button>
       </CardFooter>
     </Card>
