@@ -2,20 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface DflipViewerProps {
   pdfUrl: string;
   flipbookId: string;
   onReady?: () => void;
   onProgress?: (progress: number) => void;
-  onPageChange?: (current: number, total: number) => void; // page change callback
+  onPageChange?: (current: number, total: number) => void;
 }
 
 declare global {
   interface Window {
     $: any;
     jQuery: any;
-    // Updated signature to accept element
     loadFlipbook: (element: HTMLElement, url: string, rtlMode: boolean, page: number, pdfId: string) => void;
     getLastPage: (pdfId: string) => Promise<number>;
     onPdfProgress?: (progress: number) => void;
@@ -31,14 +31,18 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isReady, setIsReady] = useState(false);
   const flipbookInitialized = useRef(false);
+  
   const pagePollRef = useRef<number | null>(null);
   const lastPageRef = useRef<number>(-1);
   const lastTotalRef = useRef<number>(-1);
+  
+  // Use hook, but we will also double-check width manually
+  const isMobile = useIsMobile();
 
   // Check if dflip scripts are loaded
   useEffect(() => {
     let retryCount = 0;
-    const maxRetries = 50; // 5 seconds total
+    const maxRetries = 50;
 
     const checkScripts = () => {
       if (
@@ -74,8 +78,6 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
       console.log('PDF ready in viewer');
       setIsReady(true);
       onReady?.();
-
-      // Begin polling pages once ready
       startPagePolling();
     };
 
@@ -92,7 +94,6 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
       return;
     }
 
-    // Ensure container exists before calling the library
     if (!containerRef.current) {
         console.warn("Container ref is null, retrying...");
         return;
@@ -100,12 +101,35 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
 
     const initFlipbook = () => {
       try {
-        console.log('Initializing flipbook viewer:', { pdfUrl, flipbookId });
+        // Double check width manually to ensure mobile detection is accurate at this exact moment
+        const isSmallScreen = window.innerWidth < 768;
+        const shouldUseSingleMode = isMobile || isSmallScreen;
+
+        console.log('Initializing flipbook viewer:', { pdfUrl, flipbookId, mode: shouldUseSingleMode ? 'SINGLE' : 'DOUBLE' });
         
         if (containerRef.current) {
-            containerRef.current.innerHTML = ''; // Clean up previous
+            // ✅ FORCE SINGLE PAGE MODE via Global Option
+            const optionName = `option_${flipbookId}`;
             
-            // PASS THE DOM ELEMENT DIRECTLY
+            // We set specific flags that dFlip uses to determine layout
+            (window as any)[optionName] = {
+                // 1 = Single Page (Slide), 2 = Double Page (Book)
+                pageMode: shouldUseSingleMode ? 1 : 2, 
+                
+                // Some versions of dFlip use this flag specifically
+                singlePageMode: shouldUseSingleMode,
+                
+                // Force 3D on mobile for the "Stack" effect
+                webgl: true, 
+                
+                height: '100%',
+                duration: 800,
+                
+                // Disables the "Smart" auto-switch that might be forcing Double mode on wider phones
+                autoPageMode: false 
+            };
+
+            containerRef.current.innerHTML = ''; 
             window.loadFlipbook(containerRef.current, pdfUrl, false, 1, flipbookId);
             
             flipbookInitialized.current = true;
@@ -116,21 +140,24 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
       }
     };
 
-    const timeoutId = setTimeout(initFlipbook, 100);
+    const timeoutId = setTimeout(initFlipbook, 50);
 
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [scriptsReady, pdfUrl, flipbookId]);
+  }, [scriptsReady, pdfUrl, flipbookId, isMobile]);
 
-  // Start/Stop page polling helpers
+  // ... (Rest of the file: pollPages, startPagePolling, stopPagePolling, cleanup, return)
+  // KEEP THE REST OF THE FILE EXACTLY AS IT WAS BEFORE
+  // (I am omitting it to save space, but ensure you copy the polling/render logic from previous version)
+  
+  // ⬇️ RE-INSERTING THE POLLING AND RENDER LOGIC FOR YOU TO COPY-PASTE IF NEEDED ⬇️
   const pollPages = () => {
     try {
       if (!containerRef.current) return;
       const $container = (window as any).jQuery?.(containerRef.current);
       const flipbook = $container?.data('dflip');
       const target = flipbook?.target || flipbook;
-      // Heuristic property discovery for page numbers
       const current = target?._activePage ?? target?.currentPage ?? target?.currentPageNum ?? flipbook?.currentPage ?? flipbook?.pageNumber;
       const total = target?.totalPages ?? target?.pageCount ?? target?.pages?.length ?? flipbook?.totalPages;
       if (typeof current === 'number' && typeof total === 'number') {
@@ -140,9 +167,7 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
           onPageChange?.(current, total);
         }
       }
-    } catch {
-      // silent
-    }
+    } catch {}
   };
 
   const startPagePolling = () => {
@@ -157,7 +182,6 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
     }
   };
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (flipbookInitialized.current && containerRef.current) {
