@@ -19,18 +19,19 @@ export function useFileUpload(userRole: UserRole, userId: string | undefined, on
   };
 
   const validateFile = (fileToValidate: File, currentFlipbookCount: number) => {
-    // 1. Check Plan Limits
-    const plan = userRole === 'pro' ? PLANS.PRO : PLANS.FREE;
+    // Dynamic Plan Lookup - Convert userRole to uppercase to match PLANS keys
+    const planKey = userRole.toUpperCase() as keyof typeof PLANS;
+    const plan = PLANS[planKey] || PLANS.FREE; // Fallback to FREE if role not found
     
     // Check count limit
     if (currentFlipbookCount >= plan.maxFlipbooks) {
-      toast.error(`Free users can only create ${plan.maxFlipbooks} flipbooks. Upgrade to Pro for unlimited!`);
+      toast.error(`Your ${plan.name} plan limit is ${plan.maxFlipbooks} flipbook${plan.maxFlipbooks !== 1 ? 's' : ''}. Upgrade for more!`);
       return false;
     }
 
     // Check size limit
     if (fileToValidate.size > plan.maxFileSizeBytes) {
-      toast.error(`Maximum file size is ${plan.maxFileSizeMB}MB. ${userRole === 'free' ? 'Upgrade to Pro for 50MB limit!' : ''}`);
+      toast.error(`File too large! Your ${plan.name} plan limit is ${plan.maxFileSizeMB}MB. Upgrade for larger files.`);
       return false;
     }
 

@@ -6,6 +6,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Define Plan Prices (in Paise)
+// 1 INR = 100 Paise
+const PLAN_PRICES: Record<string, number> = {
+  starter: 29900,  // ₹299
+  hobby: 59900,    // ₹599
+  business: 99900, // ₹999
+  pro: 149900      // ₹1499
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -35,7 +44,16 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    // Check if user already has an active Pro subscription
+    // Parse request body to get the requested Plan ID
+    const { planId } = await req.json();
+    
+    if (!planId || !PLAN_PRICES[planId]) {
+      throw new Error('Invalid or missing Plan ID');
+    }
+
+    const amount = PLAN_PRICES[planId];
+
+    // Check if user already has an active subscription
     const { data: existingSubscription } = await supabase
       .from('subscriptions')
       .select('status, expires_at')
@@ -48,7 +66,7 @@ serve(async (req) => {
       if (expiresAt && expiresAt > new Date()) {
         console.log('User already has active subscription');
         return new Response(
-          JSON.stringify({ error: 'Subscription already active' }),
+          JSON.stringify({ error: 'You already have an active subscription' }),
           {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -58,7 +76,7 @@ serve(async (req) => {
     }
 
     // Create Razorpay order
-    const amount = parseInt(Deno.env.get('PRO_PLAN_PRICE') || '10000'); // Default 100 INR in paise
+    // Create Razorpay order
     // Receipt must be max 40 chars - use shortened user ID + timestamp
     const shortId = user.id.slice(0, 8);
     const timestamp = Date.now().toString().slice(-8);
@@ -66,6 +84,10 @@ serve(async (req) => {
       amount: amount,
       currency: 'INR',
       receipt: `rcpt_${shortId}_${timestamp}`,
+      notes: {
+        plan_id: planId, // Store plan ID in Razorpay notes for reference
+        user_id: user.id
+      }
     };
 
     const auth = btoa(`${razorpayKeyId}:${razorpayKeySecret}`);
@@ -86,11 +108,12 @@ serve(async (req) => {
 
     const order = await response.json();
 
-    // Create or update subscription record
+    // Create or update subscription record - store plan_id so we know what tier to activate
     const { error: upsertError } = await supabase
       .from('subscriptions')
       .upsert({
         user_id: user.id,
+        plan_id: planId,      // Important: Save the plan they are attempting to buy
         amount: amount,
         currency: 'INR',
         status: 'pending',

@@ -34,4 +34,4 @@ export interface ViewEvent {
   session_id?: string | null;
 }
 
-export type UserRole = 'free' | 'pro';
+export type UserRole = 'free' | 'starter' | 'hobby' | 'business' | 'pro';

@@ -56,7 +56,7 @@ export function useSubscription(userId: string | undefined) {
     });
   };
 
-  const upgradeToPro = async (userEmail: string | undefined) => {
+  const subscribeToPlan = async (planId: string, userEmail: string | undefined) => {
     setProcessingPayment(true);
     try {
       const res = await initializeRazorpay();
@@ -65,7 +65,9 @@ export function useSubscription(userId: string | undefined) {
         return;
       }
 
-      const { data: orderData, error: orderError } = await supabase.functions.invoke('create-razorpay-order');
+      const { data: orderData, error: orderError } = await supabase.functions.invoke('create-razorpay-order', {
+        body: { planId }
+      });
       if (orderError) throw orderError;
 
       const options = {
@@ -73,7 +75,7 @@ export function useSubscription(userId: string | undefined) {
         amount: orderData.amount,
         currency: orderData.currency,
         name: "FlipFlow",
-        description: "Pro Subscription",
+        description: `Subscription to ${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan`,
         order_id: orderData.orderId,
         handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
           try {
@@ -82,11 +84,12 @@ export function useSubscription(userId: string | undefined) {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
+                planId: planId,
               },
             });
 
             if (verifyError) throw verifyError;
-            toast.success("Welcome to FlipFlow Pro! 🎉");
+            toast.success(`Welcome to FlipFlow ${planId.charAt(0).toUpperCase() + planId.slice(1)}! 🎉`);
             fetchUserRole(); // Refresh role
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : "Payment verification failed";
@@ -101,11 +104,11 @@ export function useSubscription(userId: string | undefined) {
       paymentObject.open();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Payment failed";
-      toast.error(error.message || "Failed to initiate payment");
+      toast.error(errorMessage);
     } finally {
       setProcessingPayment(false);
     }
   };
 
-  return { userRole, profile, processingPayment, upgradeToPro };
+  return { userRole, profile, processingPayment, subscribeToPlan };
 }

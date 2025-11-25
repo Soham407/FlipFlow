@@ -60,7 +60,7 @@ const Dashboard = () => {
     userRole, 
     profile, 
     processingPayment, 
-    upgradeToPro 
+    subscribeToPlan 
   } = useSubscription(session?.user?.id);
 
   const {
@@ -145,19 +145,19 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Badge variant={userRole === 'pro' ? 'default' : 'secondary'} className="gap-1 hidden sm:flex">
-                {userRole === 'pro' && <Crown className="h-3 w-3" />}
-                {userRole === 'pro' ? 'Pro' : 'Free'} Plan
+              <Badge variant={userRole === 'free' ? 'secondary' : 'default'} className="gap-1 hidden sm:flex">
+                {userRole !== 'free' && <Crown className="h-3 w-3" />}
+                {userRole.charAt(0).toUpperCase() + userRole.slice(1)} Plan
               </Badge>
               {userRole === 'free' && (
-                <Button onClick={() => upgradeToPro(session?.user?.email)} disabled={processingPayment} size="sm" className="gap-1.5">
+                <Button onClick={() => subscribeToPlan('starter', session?.user?.email)} disabled={processingPayment} size="sm" className="gap-1.5">
                   {processingPayment ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Crown className="h-4 w-4" />
                   )}
-                  <span className="hidden sm:inline">Upgrade to Pro</span>
-                  <span className="sm:hidden">Pro</span>
+                  <span className="hidden sm:inline">Upgrade Plan</span>
+                  <span className="sm:hidden">Upgrade</span>
                 </Button>
               )}
               
@@ -231,8 +231,15 @@ const Dashboard = () => {
                 <DialogHeader>
                   <DialogTitle>Upload New Flipbook</DialogTitle>
                   <DialogDescription>
-                    Upload a PDF file to create a new flipbook. 
-                    {userRole === 'free' && ` (${PLANS.FREE.maxFlipbooks - flipbooks.length} uploads remaining)`}
+                    Upload a PDF file to create a new flipbook.
+                    {(() => {
+                      const planKey = userRole.toUpperCase() as keyof typeof PLANS;
+                      const plan = PLANS[planKey] || PLANS.FREE;
+                      const remaining = plan.maxFlipbooks - flipbooks.length;
+                      return plan.maxFlipbooks !== Infinity && remaining > 0
+                        ? ` (${remaining} upload${remaining !== 1 ? 's' : ''} remaining)`
+                        : '';
+                    })()}
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleUploadClick}>
@@ -269,7 +276,11 @@ const Dashboard = () => {
                             <div>
                               <p className="font-medium text-foreground">Drop your PDF here or click to browse</p>
                               <p className="text-sm text-muted-foreground mt-1">
-                                Maximum file size: {userRole === 'pro' ? `${PLANS.PRO.maxFileSizeMB}MB` : `${PLANS.FREE.maxFileSizeMB}MB`}
+                                Maximum file size: {(() => {
+                                  const planKey = userRole.toUpperCase() as keyof typeof PLANS;
+                                  const plan = PLANS[planKey] || PLANS.FREE;
+                                  return `${plan.maxFileSizeMB}MB`;
+                                })()}
                               </p>
                             </div>
                           )}

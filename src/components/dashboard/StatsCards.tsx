@@ -10,11 +10,12 @@ interface StatsCardsProps {
 }
 
 export function StatsCards({ flipbooksCount, userRole }: StatsCardsProps) {
-  const plan = userRole === 'pro' ? PLANS.PRO : PLANS.FREE;
+  const planKey = userRole.toUpperCase() as keyof typeof PLANS;
+  const plan = PLANS[planKey] || PLANS.FREE;
   
   // Calculate usage percentage (safe for Infinity)
-  const usagePercent = userRole === 'pro' 
-    ? 0 // Pro has no limit visually
+  const usagePercent = plan.maxFlipbooks === Infinity
+    ? 0 // Unlimited has no limit visually
     : Math.min((flipbooksCount / plan.maxFlipbooks) * 100, 100);
 
   return (
@@ -27,9 +28,9 @@ export function StatsCards({ flipbooksCount, userRole }: StatsCardsProps) {
         <CardContent>
           <div className="text-2xl font-bold">{flipbooksCount}</div>
           <p className="text-xs text-muted-foreground">
-            {userRole === 'free' 
-              ? `${plan.maxFlipbooks - flipbooksCount} remaining on Free plan`
-              : "Unlimited uploads active"
+            {plan.maxFlipbooks === Infinity
+              ? "Unlimited uploads active"
+              : `${plan.maxFlipbooks - flipbooksCount} remaining on ${plan.name} plan`
             }
           </p>
         </CardContent>
@@ -42,7 +43,7 @@ export function StatsCards({ flipbooksCount, userRole }: StatsCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {userRole === 'free' ? `${plan.maxFileSizeMB}MB` : `${plan.maxFileSizeMB}MB`}
+            {plan.maxFileSizeMB}MB
           </div>
           <p className="text-xs text-muted-foreground">
             Max file size per upload
@@ -53,12 +54,12 @@ export function StatsCards({ flipbooksCount, userRole }: StatsCardsProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Plan Usage</CardTitle>
-          <Zap className={`h-4 w-4 ${userRole === 'pro' ? 'text-yellow-500' : 'text-muted-foreground'}`} />
+          <Zap className={`h-4 w-4 ${userRole !== 'free' ? 'text-yellow-500' : 'text-muted-foreground'}`} />
         </CardHeader>
         <CardContent>
-          {userRole === 'pro' ? (
+          {plan.maxFlipbooks === Infinity ? (
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-primary">PRO</span>
+              <span className="text-2xl font-bold text-primary">{plan.name.toUpperCase()}</span>
               <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold">
                 ACTIVE
               </span>

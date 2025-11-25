@@ -40,7 +40,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = await req.json();
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planId } = await req.json();
 
     // Verify signature
     const text = `${razorpay_order_id}|${razorpay_payment_id}`;
@@ -52,7 +52,26 @@ serve(async (req) => {
       throw new Error('Invalid signature');
     }
 
-    // Update subscription - 1 month for 100 INR
+    // Fetch subscription to get the plan_id
+    const { data: subscription, error: subError } = await supabaseAdmin
+      .from('subscriptions')
+      .select('plan_id')
+      .eq('razorpay_order_id', razorpay_order_id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (subError || !subscription) {
+      throw new Error('Subscription not found');
+    }
+
+    // Use planId from request body as fallback, but prefer database value
+    const tierToActivate = subscription.plan_id || planId;
+
+    if (!tierToActivate) {
+      throw new Error('Plan ID not found in subscription or request');
+    }
+
+    // Update subscription - 1 month for all plans
     // CRITICAL: We await these updates to ensure they complete before returning
     // This prevents race conditions where the frontend checks subscription status
     // before the database updates are committed
@@ -75,13 +94,13 @@ serve(async (req) => {
       throw new Error('Failed to update subscription');
     }
 
-    // Update user role to pro
+    // Update user role to the purchased tier (starter, hobby, business, or pro)
     // Awaited to ensure role update completes before response is sent
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .upsert({
         user_id: user.id,
-        role: 'pro',
+        role: tierToActivate,
       }, {
         onConflict: 'user_id,role'
       });
@@ -92,7 +111,10 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Payment verified and pro subscription activated' }),
+      JSON.stringify({ 
+        success: true, 
+        message: `Payment verified and ${tierToActivate} subscription activated` 
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
