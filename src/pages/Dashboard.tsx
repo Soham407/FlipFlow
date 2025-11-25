@@ -21,6 +21,7 @@ import { StatsCards } from "@/components/dashboard/StatsCards";
 import { FlipbookCard } from "@/components/dashboard/FlipbookCard";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { PricingModal } from "@/components/dashboard/PricingModal";
 import { toast } from "sonner";
 
 // Hooks & Types
@@ -34,6 +35,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
 
   // 1. Auth State
   useEffect(() => {
@@ -128,6 +130,11 @@ const Dashboard = () => {
     navigate("/");
   };
 
+  const handleSelectPlan = async (planId: string) => {
+    await subscribeToPlan(planId, session?.user?.email);
+    setIsPricingModalOpen(false);
+  };
+
   if (loadingFlipbooks) {
     return <DashboardSkeleton />;
   }
@@ -150,7 +157,7 @@ const Dashboard = () => {
                 {userRole.charAt(0).toUpperCase() + userRole.slice(1)} Plan
               </Badge>
               {userRole === 'free' && (
-                <Button onClick={() => subscribeToPlan('starter', session?.user?.email)} disabled={processingPayment} size="sm" className="gap-1.5">
+                <Button onClick={() => setIsPricingModalOpen(true)} disabled={processingPayment} size="sm" className="gap-1.5">
                   {processingPayment ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -329,6 +336,15 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Pricing Modal */}
+      <PricingModal
+        open={isPricingModalOpen}
+        onOpenChange={setIsPricingModalOpen}
+        onSelectPlan={handleSelectPlan}
+        processingPayment={processingPayment}
+        currentPlan={userRole}
+      />
     </div>
   );
 };

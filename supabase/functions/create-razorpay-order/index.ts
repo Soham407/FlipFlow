@@ -61,25 +61,35 @@ serve(async (req) => {
     const amount = PLAN_PRICES[planId];
 
     // Check if user already has an active subscription
-    const { data: existingSubscription } = await supabase
-      .from('subscriptions')
-      .select('status, expires_at')
-      .eq('user_id', user.id)
-      .eq('status', 'completed')
-      .single();
+    try {
+      const { data: existingSubscription, error: subError } = await supabase
+        .from('subscriptions')
+        .select('status, expires_at')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .maybeSingle();
 
-    if (existingSubscription) {
-      const expiresAt = existingSubscription.expires_at ? new Date(existingSubscription.expires_at) : null;
-      if (expiresAt && expiresAt > new Date()) {
-        console.log('User already has active subscription');
-        return new Response(
-          JSON.stringify({ error: 'You already have an active subscription' }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
+      if (subError) {
+        console.warn('Error checking existing subscription:', subError);
+        // Continue anyway - don't block if subscription check fails
       }
+
+      if (existingSubscription) {
+        const expiresAt = existingSubscription.expires_at ? new Date(existingSubscription.expires_at) : null;
+        if (expiresAt && expiresAt > new Date()) {
+          console.log('User already has active subscription');
+          return new Response(
+            JSON.stringify({ error: 'You already have an active subscription' }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
+      }
+    } catch (checkError) {
+      console.error('Subscription check failed:', checkError);
+      // Continue anyway - don't block the upgrade
     }
 
     // Create Razorpay order
@@ -147,8 +157,18 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    console.error('Error message:', errorMessage);
+    console.error('Error stack:', errorStack);
+    
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        error: errorMessage,
+        details: errorStack,
+        timestamp: new Date().toISOString()
+      }),
       {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

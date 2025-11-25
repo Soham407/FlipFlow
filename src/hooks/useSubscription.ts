@@ -68,7 +68,31 @@ export function useSubscription(userId: string | undefined) {
       const { data: orderData, error: orderError } = await supabase.functions.invoke('create-razorpay-order', {
         body: { planId }
       });
-      if (orderError) throw orderError;
+      
+      console.log('Edge function response:', { orderData, orderError });
+      console.log('Plan ID sent:', planId);
+      
+      if (orderError) {
+        console.error('Edge function error details:', orderError);
+        console.error('Error message:', orderError.message);
+        console.error('Error context:', orderError.context);
+        
+        // Try to extract the actual error from the response
+        if (orderError.context instanceof Response) {
+          const errorBody = await orderError.context.json().catch(() => null);
+          console.error('Actual error from edge function:', errorBody);
+          if (errorBody?.error) {
+            throw new Error(errorBody.error);
+          }
+        }
+        
+        throw orderError;
+      }
+      
+      if (orderData?.error) {
+        console.error('Edge function returned error in data:', orderData.error);
+        throw new Error(orderData.error);
+      }
 
       const options = {
         key: orderData.keyId,
