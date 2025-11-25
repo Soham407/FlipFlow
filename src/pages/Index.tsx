@@ -1,11 +1,36 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Upload, Eye, Zap, Shield, Sparkles, CheckCircle, Crown } from "lucide-react";
+import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>FlipFlow - Transform PDFs into Interactive Flipbooks</title>
+        <meta 
+          name="description" 
+          content="Create stunning, interactive HTML5 flipbooks from your PDFs in seconds. Perfect for magazines, catalogs, portfolios, and more. Start free with 3 flipbooks forever." 
+        />
+        <meta property="og:title" content="FlipFlow - Interactive PDF Flipbooks" />
+        <meta 
+          property="og:description" 
+          content="Transform your PDFs into beautiful, interactive flipbooks with realistic page-turning animations. Try it free today!" 
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://flipflow.com" />
+        <meta property="og:image" content="https://flipflow.com/Images/FF Logo.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="FlipFlow - Interactive PDF Flipbooks" />
+        <meta 
+          name="twitter:description" 
+          content="Create stunning flipbooks from PDFs in seconds. Free plan available." 
+        />
+        <link rel="canonical" href="https://flipflow.com" />
+      </Helmet>
+
       {/* Navigation */}
       <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -254,11 +279,7 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-muted/30 py-12">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© 2024 FlipFlow. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

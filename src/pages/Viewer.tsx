@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -259,9 +260,33 @@ const Viewer = () => {
   }
 
   const readingPercent = totalPages > 0 ? Math.min(100, Math.round((currentPage / totalPages) * 100)) : 0;
+  const viewerUrl = `${window.location.origin}/view/${flipbook.slug || flipbook.id}`;
 
   return (
     <div className="flex flex-col h-[100dvh] relative 	bg-[#EDEDED] overflow-hidden" >
+      <Helmet>
+        <title>{flipbook.title} - FlipFlow</title>
+        <meta 
+          name="description" 
+          content={`View ${flipbook.title} - An interactive flipbook created with FlipFlow. Read, share, and enjoy this digital publication.`} 
+        />
+        <meta property="og:title" content={`${flipbook.title} - FlipFlow`} />
+        <meta 
+          property="og:description" 
+          content={`View this interactive flipbook: ${flipbook.title}`} 
+        />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={viewerUrl} />
+        <meta property="og:image" content="https://flipflow.com/Images/FF Logo.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`${flipbook.title} - FlipFlow`} />
+        <meta 
+          name="twitter:description" 
+          content={`Interactive flipbook: ${flipbook.title}`} 
+        />
+        <link rel="canonical" href={viewerUrl} />
+      </Helmet>
+
       {/* Desktop Header */}
       {!isMobile && (
         <header className="flex items-center justify-between px-4 py-3 bg-background border-b z-30">

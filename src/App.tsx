@@ -16,6 +16,10 @@ import Viewer from "./pages/Viewer";
 import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import Refund from "./pages/Refund";
+import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +47,12 @@ const App = () => {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/view/:id" element={<Viewer />} />
+            
+            {/* Legal Pages */}
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/refund" element={<Refund />} />
+            <Route path="/contact" element={<Contact />} />
             
             {/* Protected Routes - Require Authentication */}
             <Route element={<ProtectedRoute />}>
