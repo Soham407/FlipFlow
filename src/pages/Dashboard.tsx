@@ -118,7 +118,7 @@ const Dashboard = () => {
       
       await navigator.clipboard.writeText(iframe);
       toast.success("Embed code copied to clipboard!");
-    } catch (error: any) {
+    } catch (error) {
       toast.error("Failed to copy embed code");
     }
   };

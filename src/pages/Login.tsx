@@ -74,8 +74,9 @@ const Login = () => {
 
       toast.success("Successfully logged in!");
       navigate("/dashboard");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to log in");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to log in";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -93,8 +94,9 @@ const Login = () => {
       });
 
       if (error) throw error;
-    } catch (error: any) {
-      toast.error(error.message || `Failed to login with ${provider}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : `Failed to login with ${provider}`;
+      toast.error(errorMessage);
       setOauthLoading(null);
     }
   };

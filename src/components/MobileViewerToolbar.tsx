@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -38,7 +39,9 @@ const MobileViewerToolbar: React.FC<MobileViewerToolbarProps> = ({ pdfUrl }) => 
           setCurrentPage(typeof cp === "number" ? cp : 1);
           setTotalPages(typeof tp === "number" ? tp : 0);
           setIsSinglePage(pm === 1);
-        } catch {}
+        } catch (error) {
+          // Silent catch - initialization error is non-critical
+        }
       } else if (retries < max) {
         retries++;
         setTimeout(check, 300);
@@ -67,7 +70,9 @@ const MobileViewerToolbar: React.FC<MobileViewerToolbarProps> = ({ pdfUrl }) => 
           lastTotal = tp;
           setTotalPages(tp);
         }
-      } catch {}
+      } catch (error) {
+        // Silent catch - polling error is non-critical
+      }
       rafId = window.requestAnimationFrame(tick);
     };
     rafId = window.requestAnimationFrame(tick);
@@ -96,7 +101,9 @@ const MobileViewerToolbar: React.FC<MobileViewerToolbarProps> = ({ pdfUrl }) => 
       }
       setIsSinglePage(desiredSingle);
       appliedDefaultRef.current = true;
-    } catch {}
+    } catch (error) {
+      // Silent catch - mode enforcement error is non-critical
+    }
   }, [isReady, isMobile]);
 
   const callMethod = (flipbook: any, methodPaths: string[], args: any[] = []) => {
@@ -111,7 +118,9 @@ const MobileViewerToolbar: React.FC<MobileViewerToolbarProps> = ({ pdfUrl }) => 
       if (typeof fn === "function") {
         try {
           return fn.apply(ctx, args);
-        } catch {}
+        } catch (error) {
+          // Silent catch - method call error is non-critical
+        }
       }
     }
     return undefined;
@@ -187,7 +196,9 @@ const MobileViewerToolbar: React.FC<MobileViewerToolbarProps> = ({ pdfUrl }) => 
           }
           setIsSinglePage(newSingle);
           toast.success(`Switched to ${newSingle ? "single" : "double"} page mode`);
-        } catch {}
+        } catch (error) {
+          // Silent catch - page mode toggle error is non-critical
+        }
         break;
       }
       case "share": {

@@ -67,11 +67,12 @@ const SignUp = () => {
 
       toast.success("Account created! Please check your email to verify.");
       navigate("/login");
-    } catch (error: any) {
-      if (error.message?.includes("already registered")) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to sign up";
+      if (errorMessage?.includes("already registered")) {
         toast.error("This email is already registered. Please log in instead.");
       } else {
-        toast.error(error.message || "Failed to sign up");
+        toast.error(errorMessage);
       }
     } finally {
       setLoading(false);
@@ -90,8 +91,9 @@ const SignUp = () => {
       });
 
       if (error) throw error;
-    } catch (error: any) {
-      toast.error(error.message || `Failed to sign up with ${provider}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : `Failed to sign up with ${provider}`;
+      toast.error(errorMessage);
       setOauthLoading(null);
     }
   };

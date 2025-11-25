@@ -32,7 +32,7 @@ const Viewer = () => {
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(routeParam);
         const { data, error } = await supabase.from("flipbooks").select("*").eq(isUuid ? "id" : "slug", routeParam).maybeSingle();
         if (error) throw error;
-        if (data) setFlipbook(data as any);
+        if (data) setFlipbook(data);
       } catch (error) {
         toast.error("Failed to load flipbook");
       } finally {
@@ -96,9 +96,9 @@ const Viewer = () => {
 
     const setupOverlay = () => {
       const container = document.getElementById("flipbookContainer");
-      if (!container || !(window as any).jQuery) return;
+      if (!container || !(window as { jQuery?: unknown }).jQuery) return;
 
-      const $container = (window as any).jQuery(container);
+      const $container = ((window as { jQuery: (el: HTMLElement) => { find: (selector: string) => { length: number; on: (event: string, handler: () => void) => void } } }).jQuery)(container);
       const $sidemenu = $container.find(".df-sidemenu");
       if (!$sidemenu.length) return;
 
@@ -232,7 +232,7 @@ const Viewer = () => {
     const maxRetries = 30; // 9 seconds max
 
     const checkReady = () => {
-      if ((window as any).jQuery && document.getElementById("flipbookContainer")) {
+      if ((window as { jQuery?: unknown }).jQuery && document.getElementById("flipbookContainer")) {
         if (checkInterval) clearInterval(checkInterval);
         setupOverlay();
       } else if (retries < maxRetries) {

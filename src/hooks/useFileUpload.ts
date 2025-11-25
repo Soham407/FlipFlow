@@ -65,9 +65,10 @@ export function useFileUpload(userRole: UserRole, userId: string | undefined, on
       setTitle("");
       onSuccess(); // Callback to close modal or refresh list
       return true;
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload flipbook";
       console.error('Upload error:', error);
-      toast.error(error.message || "Failed to upload flipbook");
+      toast.error(errorMessage);
       return false;
     } finally {
       setUploading(false);

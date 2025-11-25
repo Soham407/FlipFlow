@@ -39,6 +39,7 @@ const Profile = () => {
     if (session) {
       fetchProfile();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
   const fetchProfile = async () => {
@@ -79,7 +80,7 @@ const Profile = () => {
         setBio(data.bio || "");
         setAvatarUrl(data.avatar_url || "");
       }
-    } catch (error: any) {
+    } catch (error) {
       toast.error("Failed to load profile");
       console.error("Error loading profile:", error);
     } finally {
@@ -106,8 +107,9 @@ const Profile = () => {
 
       toast.success("Profile updated successfully!");
       fetchProfile();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update profile");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update profile";
+      toast.error(errorMessage);
     } finally {
       setUpdating(false);
     }

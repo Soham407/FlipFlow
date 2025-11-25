@@ -44,7 +44,7 @@ const Analytics = () => {
           .order("viewed_at", { ascending: true });
         if (error) throw error;
         setViews(data || []);
-      } catch (err: any) {
+      } catch (err) {
         toast.error("Failed to load analytics");
         setError("Could not load analytics data. Please try again later.");
       } finally {

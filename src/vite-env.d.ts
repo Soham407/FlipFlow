@@ -2,8 +2,8 @@
 
 declare global {
   interface Window {
-    $: any;
-    jQuery: any;
+    $: unknown;
+    jQuery: unknown;
     
     // Flipbook global functions
     loadFlipbook: (

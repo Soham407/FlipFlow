@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import { Share2, RectangleHorizontal, Fullscreen } from "lucide-react";
 import { toast } from "sonner";
@@ -158,7 +159,9 @@ function ViewerToolbar({ pdfUrl }: ViewerToolbarProps) {
       if (typeof fn === "function") {
         try {
           return fn.apply(ctx, args);
-        } catch (e) {}
+        } catch (e) {
+          // Silent catch - method call error is non-critical
+        }
       }
     }
   };

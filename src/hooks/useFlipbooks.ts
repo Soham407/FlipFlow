@@ -42,9 +42,10 @@ export function useFlipbooks(userId: string | undefined) {
       toast.success("Flipbook deleted successfully!");
       await fetchFlipbooks(); // Refresh list
       
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete flipbook";
       console.error('Delete error:', error);
-      toast.error(error.message || "Failed to delete flipbook");
+      toast.error(errorMessage);
     }
   };
 

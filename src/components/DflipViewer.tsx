@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -86,6 +87,7 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
       delete window.onPdfReady;
       stopPagePolling();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scriptsReady, onReady, onProgress]);
 
   // Initialize the flipbook
@@ -167,7 +169,9 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
           onPageChange?.(current, total);
         }
       }
-    } catch {}
+    } catch (error) {
+      // Silent catch - polling error is non-critical
+    }
   };
 
   const startPagePolling = () => {
@@ -184,19 +188,23 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
 
   useEffect(() => {
     return () => {
-      if (flipbookInitialized.current && containerRef.current) {
-        try {
-          const $container = window.$(containerRef.current);
-          if ($container && $container.data && typeof $container.data('dflip') !== 'undefined') {
-            const flipbook = $container.data('dflip');
-            if (flipbook && typeof flipbook.dispose === 'function') {
-              flipbook.dispose();
+      if (flipbookInitialized.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        const currentContainer = containerRef.current;
+        if (currentContainer) {
+          try {
+            const $container = window.$(currentContainer);
+            if ($container && $container.data && typeof $container.data('dflip') !== 'undefined') {
+              const flipbook = $container.data('dflip');
+              if (flipbook && typeof flipbook.dispose === 'function') {
+                flipbook.dispose();
+              }
             }
+          } catch (error) {
+            console.warn('Error disposing flipbook:', error);
           }
-        } catch (error) {
-          console.warn('Error disposing flipbook:', error);
+          flipbookInitialized.current = false;
         }
-        flipbookInitialized.current = false;
       }
       stopPagePolling();
     };

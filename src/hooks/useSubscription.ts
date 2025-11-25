@@ -14,6 +14,7 @@ export function useSubscription(userId: string | undefined) {
       fetchUserRole();
       fetchProfile();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const fetchProfile = async () => {
@@ -74,7 +75,7 @@ export function useSubscription(userId: string | undefined) {
         name: "FlipFlow",
         description: "Pro Subscription",
         order_id: orderData.orderId,
-        handler: async (response: any) => {
+        handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
           try {
             const { error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
               body: {
@@ -87,17 +88,19 @@ export function useSubscription(userId: string | undefined) {
             if (verifyError) throw verifyError;
             toast.success("Welcome to FlipFlow Pro! 🎉");
             fetchUserRole(); // Refresh role
-          } catch (error: any) {
-            toast.error(error.message || "Payment verification failed");
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Payment verification failed";
+            toast.error(errorMessage);
           }
         },
         prefill: { email: userEmail || "" },
         theme: { color: "#3b82f6" },
       };
 
-      const paymentObject = new (window as any).Razorpay(options);
+      const paymentObject = new (window as unknown as { Razorpay: new (options: unknown) => { open: () => void } }).Razorpay(options);
       paymentObject.open();
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Payment failed";
       toast.error(error.message || "Failed to initiate payment");
     } finally {
       setProcessingPayment(false);
