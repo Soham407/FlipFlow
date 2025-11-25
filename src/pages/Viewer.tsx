@@ -14,6 +14,19 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { DflipViewer } from "@/components/DflipViewer";
 import type { Flipbook } from "@/types";
 
+// jQuery type definitions for dflip.js
+interface JQueryElement {
+  length: number;
+  on: (event: string, handler: () => void) => void;
+  hasClass: (className: string) => boolean;
+  removeClass: (className: string) => JQueryElement;
+  [index: number]: HTMLElement;
+}
+
+interface JQueryStatic {
+  (selector: HTMLElement): { find: (selector: string) => JQueryElement };
+}
+
 const Viewer = () => {
   const { id } = useParams();
   const isMobile = useIsMobile();
@@ -99,7 +112,7 @@ const Viewer = () => {
       const container = document.getElementById("flipbookContainer");
       if (!container || !(window as { jQuery?: unknown }).jQuery) return;
 
-      const $container = ((window as { jQuery: (el: HTMLElement) => { find: (selector: string) => { length: number; on: (event: string, handler: () => void) => void } } }).jQuery)(container);
+      const $container = ((window as { jQuery: JQueryStatic }).jQuery)(container);
       const $sidemenu = $container.find(".df-sidemenu");
       if (!$sidemenu.length) return;
 
