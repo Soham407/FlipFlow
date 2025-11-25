@@ -45,10 +45,17 @@ serve(async (req) => {
     }
 
     // Parse request body to get the requested Plan ID
-    const { planId } = await req.json();
+    const body = await req.json();
+    console.log('Received request body:', body);
+    const { planId } = body;
+    
+    console.log('Plan ID:', planId);
+    console.log('Available plans:', Object.keys(PLAN_PRICES));
     
     if (!planId || !PLAN_PRICES[planId]) {
-      throw new Error('Invalid or missing Plan ID');
+      const errorMsg = `Invalid or missing Plan ID. Received: ${planId}, Expected one of: ${Object.keys(PLAN_PRICES).join(', ')}`;
+      console.error(errorMsg);
+      throw new Error(errorMsg);
     }
 
     const amount = PLAN_PRICES[planId];
