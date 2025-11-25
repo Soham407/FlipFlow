@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Upload, Eye, Zap, Shield, Sparkles, CheckCircle, Crown } from "lucide-react";
 import Footer from "@/components/Footer";
+import { PLANS } from "@/config/constants";
 
 const Index = () => {
   return (
@@ -170,94 +171,70 @@ const Index = () => {
       {/* Pricing Section */}
       <section className="container mx-auto px-4 py-24">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
-          <p className="text-lg text-muted-foreground">Choose the plan that's right for you</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Choose Your Plan</h2>
+          <p className="text-lg text-muted-foreground">Scalable pricing for professionals of all stages</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {/* Free Plan */}
-          <Card className="border-2">
-            <CardContent className="pt-6 pb-8">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold mb-2">Free</h3>
-                <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-4xl font-bold">₹0</span>
-                  <span className="text-muted-foreground">/forever</span>
+        {/* Grid: 1 col mobile, 2 col tablet, 3 col desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          {Object.entries(PLANS).map(([key, plan]) => (
+            <Card 
+              key={key} 
+              className={`w-full relative flex flex-col h-full ${
+                key === 'BUSINESS' ? 'border-primary shadow-lg md:scale-105 z-10' : 'border-2'
+              }`}
+            >
+              {/* "Popular" Badge for Business */}
+              {key === 'BUSINESS' && (
+                <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 text-xs font-bold rounded-bl-lg">
+                  POPULAR
                 </div>
-                <p className="text-muted-foreground">Perfect for trying out FlipFlow</p>
-              </div>
-              
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                  <span>Up to 3 flipbooks</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                  <span>10MB file size limit</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                  <span>Basic sharing options</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                  <span>Community support</span>
-                </li>
-              </ul>
-              
-              <Button asChild variant="outline" size="lg" className="w-full">
-                <Link to="/signup">Get Started Free</Link>
-              </Button>
-            </CardContent>
-          </Card>
+              )}
 
-          {/* Pro Plan */}
-          <Card className="border-2 border-primary relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-gradient-to-br from-primary to-accent text-primary-foreground px-4 py-1 text-sm font-semibold">
-              Popular
-            </div>
-            <CardContent className="pt-6 pb-8">
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-2xl font-bold">Pro</h3>
-                  <Crown className="h-6 w-6 text-primary" />
+              <CardContent className="pt-6 pb-8 flex-1 flex flex-col">
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-2xl font-bold">{plan.name}</h3>
+                    {key === 'PRO' && <Crown className="h-6 w-6 text-primary" />}
+                  </div>
+                  <div className="flex items-baseline gap-1 mb-4">
+                    <span className="text-4xl font-bold">
+                      {plan.price === 0 ? 'Free' : `₹${plan.price}`}
+                    </span>
+                    {plan.price > 0 && <span className="text-muted-foreground">/month</span>}
+                    {plan.price === 0 && <span className="text-muted-foreground">/forever</span>}
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    {key === 'FREE' ? 'Perfect for trying out FlipFlow' : 
+                     key === 'STARTER' ? 'Great for freelancers' :
+                     key === 'HOBBY' ? 'Ideal for content creators' :
+                     key === 'BUSINESS' ? 'Perfect for small teams' :
+                     'Unlimited power for professionals'}
+                  </p>
                 </div>
-                <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-4xl font-bold">₹100</span>
-                  <span className="text-muted-foreground">/month</span>
-                </div>
-                <p className="text-muted-foreground">Unlimited flipbooks for professionals</p>
-              </div>
-              
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                  <span className="font-medium">Unlimited flipbooks</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                  <span className="font-medium">50MB file size limit</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                  <span>Advanced sharing & embedding</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                  <span>Priority support</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                  <span>No FlipFlow branding</span>
-                </li>
-              </ul>
-              
-              <Button asChild size="lg" className="w-full">
-                <Link to="/signup">Upgrade to Pro</Link>
-              </Button>
-            </CardContent>
-          </Card>
+                
+                <ul className="space-y-3 mb-8 flex-1">
+                  {plan.features.map((feature, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                      <span className={key !== 'FREE' ? 'font-medium' : ''}>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                
+                <Button 
+                  asChild 
+                  variant={key === 'FREE' ? "outline" : "default"} 
+                  size="lg"
+                  className="w-full mt-auto"
+                >
+                  <Link to="/signup">
+                    {key === 'FREE' ? 'Get Started Free' : `Upgrade to ${plan.name}`}
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </section>
 
