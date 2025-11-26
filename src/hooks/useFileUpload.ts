@@ -54,21 +54,52 @@ export function useFileUpload(userRole: UserRole, userId: string | undefined, on
       formData.append('title', title);
       formData.append('fileSize', file.size.toString());
 
-      const { data, error } = await supabase.functions.invoke('upload-to-r2', {
+      console.log('Uploading file:', { 
+        name: file.name, 
+        size: file.size, 
+        title,
+        userRole 
+      });
+
+      // Get the session for auth header
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      // Make direct fetch call to get better error messages
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-to-r2`;
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
         body: formData,
       });
 
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Upload failed');
+      const responseData = await response.json();
+      console.log('Upload response:', { status: response.status, data: responseData });
+
+      if (!response.ok) {
+        throw new Error(responseData.error || `Upload failed with status ${response.status}`);
+      }
+
+      if (!responseData.success) {
+        throw new Error(responseData.error || 'Upload failed');
+      }
 
       toast.success("Flipbook uploaded successfully!");
       setFile(null);
       setTitle("");
-      onSuccess(); // Callback to close modal or refresh list
+      onSuccess();
       return true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to upload flipbook";
-      console.error('Upload error:', error);
+      console.error('Upload error details:', error);
+      
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Failed to upload flipbook";
+      
       toast.error(errorMessage);
       return false;
     } finally {

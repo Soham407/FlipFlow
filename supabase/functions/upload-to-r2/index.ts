@@ -6,6 +6,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Define 5-tier plan limits (must match frontend PLANS constant)
+const PLANS = {
+  FREE: { maxFileSizeMB: 2 },
+  STARTER: { maxFileSizeMB: 5 },
+  HOBBY: { maxFileSizeMB: 10 },
+  BUSINESS: { maxFileSizeMB: 25 },
+  PRO: { maxFileSizeMB: 50 }
+} as const;
+
+type PlanRole = keyof typeof PLANS;
+
 // R2 configuration
 const R2_ACCOUNT_ID = Deno.env.get('R2_ACCOUNT_ID')!;
 const R2_ACCESS_KEY_ID = Deno.env.get('R2_ACCESS_KEY_ID')!;
@@ -31,16 +42,45 @@ Deno.serve(async (req) => {
       throw new Error('Missing authorization header');
     }
 
-    const supabase = createClient(
+    // Client for auth verification (uses anon key with user's token)
+    const supabaseAuth = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
     if (authError || !user) {
       throw new Error('Unauthorized');
     }
+
+    // Admin client for database operations (bypasses RLS)
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    // Fetch user's subscription role to enforce plan limits
+    const { data: roleData, error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (roleError) {
+      console.error('Error fetching user role:', roleError);
+    }
+
+    const userRole = (roleData?.role?.toUpperCase() || 'FREE') as PlanRole;
+    const planConfig = PLANS[userRole] || PLANS.FREE;
+    const maxSizeBytes = planConfig.maxFileSizeMB * 1024 * 1024;
+
+    console.log('User plan:', { 
+      userId: user.id, 
+      role: userRole, 
+      roleData: roleData,
+      maxFileSizeMB: planConfig.maxFileSizeMB 
+    });
 
     // Parse the multipart form data
     const formData = await req.formData();
@@ -51,6 +91,14 @@ Deno.serve(async (req) => {
     if (!file || !title) {
       throw new Error('Missing required fields');
     }
+
+    // Validate file size against user's plan limit
+    if (file.size > maxSizeBytes) {
+      console.error(`File size validation failed: ${file.size} bytes exceeds ${maxSizeBytes} bytes for ${userRole} plan`);
+      throw new Error(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds your ${userRole} plan limit of ${planConfig.maxFileSizeMB}MB. Please upgrade your plan.`);
+    }
+
+    console.log('File size validation passed:', { fileSize: file.size, limit: maxSizeBytes });
 
     // Generate unique file path
     const fileExt = file.name.split('.').pop();
@@ -88,7 +136,7 @@ Deno.serve(async (req) => {
     }
 
     // Create flipbook record in database
-    const { data: flipbook, error: dbError } = await supabase
+    const { data: flipbook, error: dbError } = await supabaseAdmin
       .from('flipbooks')
       .insert({
         user_id: user.id,
@@ -126,9 +174,17 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in upload-to-r2:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('Error type:', typeof error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+    
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
     return new Response(
-      JSON.stringify({ error: errorMessage, timestamp: new Date().toISOString() }),
+      JSON.stringify({ 
+        error: errorMessage, 
+        success: false,
+        timestamp: new Date().toISOString() 
+      }),
       { 
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
