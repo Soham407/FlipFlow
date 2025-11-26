@@ -102,6 +102,7 @@ Deno.serve(async (req) => {
 
     if (dbError) {
       console.error('Database error:', dbError);
+      console.error('Error details:', JSON.stringify(dbError, null, 2));
       // Try to clean up R2 file if DB insert fails
       try {
         const deleteUrl = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET_NAME}/${fileName}`;
@@ -109,7 +110,7 @@ Deno.serve(async (req) => {
       } catch (cleanupError) {
         console.error('Cleanup failed:', cleanupError);
       }
-      throw new Error('Failed to create flipbook record');
+      throw new Error(`Failed to create flipbook record: ${dbError.message || JSON.stringify(dbError)}`);
     }
 
     console.log('Upload successful:', { flipbookId: flipbook.id, fileName });
@@ -124,9 +125,10 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in upload-to-r2:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: errorMessage, timestamp: new Date().toISOString() }),
       { 
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
