@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PLANS } from "../config/constants";
@@ -107,6 +107,27 @@ export function useFileUpload(userRole: UserRole, userId: string | undefined, on
     }
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile && droppedFile.type === "application/pdf") {
+      handleFileSelect(droppedFile);
+    } else {
+      toast.error("Please drop a PDF file");
+    }
+  };
+
   return {
     file,
     title,
@@ -115,6 +136,9 @@ export function useFileUpload(userRole: UserRole, userId: string | undefined, on
     isDragging,
     setIsDragging,
     handleFileSelect,
-    uploadFlipbook
+    uploadFlipbook,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop
   };
 }

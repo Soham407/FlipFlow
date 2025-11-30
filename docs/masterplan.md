@@ -135,23 +135,6 @@ The business model is freemium, based on the provided CSV file:
     * [x] User Dashboard
     * [x] Subscription & Payment Logic
     * [x] Analytics Dashboard (View tracking & visualization)
-    * [x] **Cloudflare R2 Migration** (Successfully migrated from Supabase Storage)
-* **Milestone 2: Code Quality & Architecture (In Progress)**
-    * [x] Create shared TypeScript types (`src/types/index.ts`)
-    * [x] Create configuration constants (`src/config/constants.ts`)
-    * [x] Implement `ProtectedRoute` wrapper for secure routing
-    * [x] Refactor all components to use shared types
-    * [ ] **(In Progress)** Extract Dashboard business logic into custom hooks
-        * [ ] Create `useFlipbooks` hook
-        * [ ] Create `useFileUpload` hook
-        * [ ] Create `useSubscription` hook
-    * [ ] Refactor Dashboard.tsx to use extracted hooks
-* **Milestone 3: Launch Readiness (Next Steps)**
-    * [ ] Thoroughly test the payment and subscription flow
-    * [ ] Finalize UI/UX polishing and mobile responsiveness checks
-    * [ ] Performance optimization and SEO improvements
-
-## 10. Potential Challenges and Solutions
 
 * **Challenge:** Large PDF files may be slow to load in the viewer.
     * **Solution:** This is why the file size limits per plan are smart. For future "Pro" tiers, we could explore server-side PDF optimization or pre-rendering (e.g., converting PDF pages to images) upon upload, but this adds complexity.

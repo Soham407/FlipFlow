@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -27,43 +27,34 @@ import { toast } from "sonner";
 // Hooks & Types
 import { useFlipbooks } from "@/hooks/useFlipbooks";
 import { useFileUpload } from "@/hooks/useFileUpload";
+
 import { useSubscription } from "@/hooks/useSubscription";
+import { useAuth } from "@/hooks/useAuth";
 import { PLANS } from "@/config/constants";
 import type { Flipbook } from "@/types";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [session, setSession] = useState<Session | null>(null);
+
+  const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
 
-  // 1. Auth State
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   // 2. Custom Hooks (Business Logic)
+
   const { 
     flipbooks, 
     loading: loadingFlipbooks, 
     deleteFlipbook, 
     refetch: refetchFlipbooks 
-  } = useFlipbooks(session?.user?.id);
+  } = useFlipbooks(user?.id);
 
   const { 
     userRole, 
     profile, 
     processingPayment, 
     subscribeToPlan 
-  } = useSubscription(session?.user?.id);
+  } = useSubscription(user?.id);
 
   const {
     file,
@@ -73,10 +64,13 @@ const Dashboard = () => {
     isDragging,
     setIsDragging,
     handleFileSelect,
-    uploadFlipbook
+    uploadFlipbook,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop
   } = useFileUpload(
     userRole, 
-    session?.user?.id, 
+    user?.id, 
     () => {
       setIsModalOpen(false); // Close modal on success
       refetchFlipbooks();    // Refresh list
@@ -84,26 +78,7 @@ const Dashboard = () => {
   );
 
   // 3. Event Handlers
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && droppedFile.type === "application/pdf") {
-      handleFileSelect(droppedFile);
-    } else {
-      toast.error("Please drop a PDF file");
-    }
-  };
 
   const handleUploadClick = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,7 +106,7 @@ const Dashboard = () => {
   };
 
   const handleSelectPlan = async (planId: string) => {
-    await subscribeToPlan(planId, session?.user?.email);
+    await subscribeToPlan(planId, user?.email);
     setIsPricingModalOpen(false);
   };
 
@@ -174,8 +149,8 @@ const Dashboard = () => {
                   <Button variant="ghost" size="sm" className="relative h-9 w-9 rounded-full p-0">
                     <Avatar className="h-9 w-9">
                       <AvatarImage 
-                        src={profile?.avatar_url || session?.user?.user_metadata?.avatar_url || undefined} 
-                        alt={profile?.full_name || session?.user?.email || "User"} 
+                        src={profile?.avatar_url || user?.user_metadata?.avatar_url || undefined} 
+                        alt={profile?.full_name || user?.email || "User"} 
                       />
                       <AvatarFallback>
                         <User className="h-4 w-4" />
@@ -187,10 +162,10 @@ const Dashboard = () => {
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        {profile?.full_name || session?.user?.user_metadata?.name || "User"}
+                        {profile?.full_name || user?.user_metadata?.name || "User"}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        {session?.user?.email}
+                        {user?.email}
                       </p>
                     </div>
                   </DropdownMenuLabel>
