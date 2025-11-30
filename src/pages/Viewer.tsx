@@ -290,7 +290,7 @@ const Viewer = () => {
         />
         <meta property="og:type" content="article" />
         <meta property="og:url" content={viewerUrl} />
-        <meta property="og:image" content="https://flipflow.com/Images/FF Logo.png" />
+        <meta property="og:image" content="https://flipflow.themediatree.co.in/Images/og-preview.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={`${flipbook.title} - FlipFlow`} />
         <meta 

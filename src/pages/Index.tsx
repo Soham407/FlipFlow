@@ -21,15 +21,15 @@ const Index = () => {
           content="Transform your PDFs into beautiful, interactive flipbooks with realistic page-turning animations. Try it free today!" 
         />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://flipflow.com" />
-        <meta property="og:image" content="https://flipflow.com/Images/FF Logo.png" />
+        <meta property="og:url" content="https://flipflow.themediatree.co.in" />
+        <meta property="og:image" content="https://flipflow.themediatree.co.in/Images/og-preview.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="FlipFlow - Interactive PDF Flipbooks" />
         <meta 
           name="twitter:description" 
           content="Create stunning flipbooks from PDFs in seconds. Free plan available." 
         />
-        <link rel="canonical" href="https://flipflow.com" />
+        <link rel="canonical" href="https://flipflow.themediatree.co.in" />
       </Helmet>
 
       {/* Navigation */}

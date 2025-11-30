@@ -120,6 +120,8 @@ VITE_GA_MEASUREMENT_ID=G-RTXEK5QH12
 
 ### 6. Final Pre-Launch Checks
 
+- [x] Update Legal Pages (Contact & Terms)
+- [x] Create OG Image
 - [ ] Run `npm run build` one final time
 - [ ] Test all pages (Home, Login, Signup, Dashboard, Viewer)
 - [ ] Test upload → flipbook creation → viewing
