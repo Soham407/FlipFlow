@@ -305,6 +305,7 @@ const Dashboard = () => {
                   flipbook={flipbook}
                   onDelete={(id) => deleteFlipbook(id)}
                   onCopyEmbed={handleCopyEmbed}
+                  onUpdate={refetchFlipbooks}
                 />
               ))}
             </div>

@@ -11,6 +11,8 @@ export interface Flipbook {
   created_at: string;
   slug?: string;
   is_public?: boolean;
+  is_locked?: boolean;
+  lock_reason?: string | null;
 }
 
 export interface Profile {

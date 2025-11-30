@@ -62,6 +62,8 @@ export type Database = {
           file_size: number | null
           id: string
           is_public: boolean
+          is_locked: boolean
+          lock_reason: string | null
           slug: string | null
           title: string
           user_id: string
@@ -72,6 +74,8 @@ export type Database = {
           file_size?: number | null
           id?: string
           is_public?: boolean
+          is_locked?: boolean
+          lock_reason?: string | null
           slug?: string | null
           title: string
           user_id: string
@@ -82,6 +86,8 @@ export type Database = {
           file_size?: number | null
           id?: string
           is_public?: boolean
+          is_locked?: boolean
+          lock_reason?: string | null
           slug?: string | null
           title?: string
           user_id?: string
@@ -210,6 +216,10 @@ export type Database = {
       }
       update_view_time_spent: {
         Args: { _time_spent_seconds: number; _view_id: string }
+        Returns: boolean
+      }
+      toggle_flipbook_lock: {
+        Args: { flipbook_id: string }
         Returns: boolean
       }
     }
