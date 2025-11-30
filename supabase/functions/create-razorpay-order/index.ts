@@ -39,6 +39,12 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
+    // Create Admin client for DB writes that require higher privileges
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       throw new Error('Unauthorized');
@@ -126,7 +132,8 @@ serve(async (req) => {
     const order = await response.json();
 
     // Create or update subscription record - store plan_id so we know what tier to activate
-    const { error: upsertError } = await supabase
+    // Use supabaseAdmin to bypass RLS policies that now prevent users from writing to this table
+    const { error: upsertError } = await supabaseAdmin
       .from('subscriptions')
       .upsert({
         user_id: user.id,
