@@ -112,8 +112,8 @@ const Privacy = () => {
             <h2 className="text-2xl font-semibold">9. Contact Us</h2>
             <p>
               If you have questions about this Privacy Policy, please contact us at:{" "}
-              <a href="mailto:support@flipflow.com" className="text-primary hover:underline">
-                support@flipflow.com
+              <a href="mailto:sohambhutkar1@gmail.com" className="text-primary hover:underline">
+                sohambhutkar1@gmail.com
               </a>
             </p>
           </section>

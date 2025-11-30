@@ -144,7 +144,7 @@ const Terms = () => {
             <h2 className="text-2xl font-semibold">13. Governing Law</h2>
             <p>
               These terms are governed by the laws of India. Any disputes shall be resolved in 
-              the courts of [Your City/State].
+              the courts of Pune, India.
             </p>
           </section>
 
@@ -152,8 +152,8 @@ const Terms = () => {
             <h2 className="text-2xl font-semibold">14. Contact Information</h2>
             <p>
               For questions about these Terms of Service, contact us at:{" "}
-              <a href="mailto:support@flipflow.com" className="text-primary hover:underline">
-                support@flipflow.com
+              <a href="mailto:sohambhutkar1@gmail.com" className="text-primary hover:underline">
+                sohambhutkar1@gmail.com
               </a>
             </p>
           </section>

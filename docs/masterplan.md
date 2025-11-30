@@ -6,20 +6,6 @@
 
 The core value proposition is to provide a more professional, branded, and engaging way for users to share documents (like brochures, portfolios, reports, and catalogs) compared to sending a simple PDF file. The application will be built on a freemium subscription model.
 
-## 2. Target Audience
-
-The primary target audience consists of **professionals and businesses** who need to share documents publicly in a polished format. This includes:
-
-* **Marketers:** For sharing brochures, case studies, and digital magazines.
-* **Sales Teams:** For presenting proposals, product catalogs, and sales decks.
-* **Educators & Trainers:** For sharing course materials and presentations.
-* **Freelancers & Creatives:** For showcasing portfolios and reports.
-* **Small Businesses:** For creating digital menus, lookbooks, and guides.
-
-## 3. Core Features and Functionality
-
-This is broken down by what's already built and what's planned.
-
 ### Core (MVP) Functionality (Largely Implemented)
 
 * **User Authentication:** Secure sign-up and login for users (Implemented via Supabase Auth).
@@ -125,21 +111,6 @@ The business model is freemium, based on the provided CSV file:
 | **Business** | 20 | 25MB |
 | **Pro** | Unlimited | 49MB |
 
-## 9. Development Milestones
-
-* **Milestone 1: Core MVP (✅ Complete)**
-    * [x] User Auth
-    * [x] PDF Upload & Storage
-    * [x] Client-side Flipbook Viewer
-    * [x] Public Sharing
-    * [x] User Dashboard
-    * [x] Subscription & Payment Logic
-    * [x] Analytics Dashboard (View tracking & visualization)
-
-* **Challenge:** Large PDF files may be slow to load in the viewer.
-    * **Solution:** This is why the file size limits per plan are smart. For future "Pro" tiers, we could explore server-side PDF optimization or pre-rendering (e.g., converting PDF pages to images) upon upload, but this adds complexity.
-* **Challenge:** `dflip.js` is a third-party library. It might have bugs or limitations.
-    * **Solution:** Be familiar with its documentation. For the future, we could explore other viewer libraries if `dflip.js` becomes too restrictive.
 * **Challenge:** ~~Scaling costs for file storage and bandwidth.~~
     * **✅ Solution Implemented:** Successfully migrated to **Cloudflare R2** for high-volume, low-cost object storage, decoupling file bandwidth costs from the Supabase platform.
 

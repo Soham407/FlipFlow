@@ -38,10 +38,10 @@ const Contact = () => {
                 Get help with technical issues, billing questions, or general inquiries.
               </p>
               <a 
-                href="mailto:support@flipflow.com"
+                href="mailto:sohambhutkar1@gmail.com"
                 className="text-primary hover:underline font-medium"
               >
-                support@flipflow.com
+                sohambhutkar1@gmail.com
               </a>
               <p className="text-sm text-muted-foreground mt-2">
                 Response time: Within 24 hours
@@ -59,10 +59,10 @@ const Contact = () => {
                 Priority support for Pro subscribers with faster response times.
               </p>
               <a 
-                href="mailto:pro@flipflow.com"
+                href="mailto:sohambhutkar1@gmail.com"
                 className="text-primary hover:underline font-medium"
               >
-                pro@flipflow.com
+                sohambhutkar1@gmail.com
               </a>
               <p className="text-sm text-muted-foreground mt-2">
                 Response time: Within 4 hours
@@ -94,8 +94,8 @@ const Contact = () => {
             <h2 className="text-2xl font-semibold">Business Inquiries</h2>
             <p>
               For partnerships, enterprise solutions, or media inquiries, please contact:{" "}
-              <a href="mailto:business@flipflow.com" className="text-primary hover:underline">
-                business@flipflow.com
+              <a href="mailto:sohambhutkar1@gmail.com" className="text-primary hover:underline">
+                sohambhutkar1@gmail.com
               </a>
             </p>
           </section>
@@ -105,8 +105,8 @@ const Contact = () => {
             <p>
               If you encounter content that violates our Terms of Service or contains 
               inappropriate material, please report it to:{" "}
-              <a href="mailto:abuse@flipflow.com" className="text-primary hover:underline">
-                abuse@flipflow.com
+              <a href="mailto:sohambhutkar1@gmail.com" className="text-primary hover:underline">
+                sohambhutkar1@gmail.com
               </a>
             </p>
           </section>
@@ -115,8 +115,8 @@ const Contact = () => {
             <h2 className="text-2xl font-semibold">Registered Address</h2>
             <p className="text-muted-foreground">
               FlipFlow<br />
-              [Your Business Address]<br />
-              [City, State, PIN Code]<br />
+              Pune<br />
+              Maharashtra<br />
               India
             </p>
           </section>

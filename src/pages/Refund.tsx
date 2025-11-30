@@ -76,8 +76,8 @@ const Refund = () => {
             <ol className="list-decimal pl-6 space-y-2">
               <li>
                 Email us at{" "}
-                <a href="mailto:support@flipflow.com" className="text-primary hover:underline">
-                  support@flipflow.com
+                <a href="mailto:sohambhutkar1@gmail.com" className="text-primary hover:underline">
+                  sohambhutkar1@gmail.com
                 </a>
               </li>
               <li>Include your account email and reason for the refund request</li>
@@ -121,7 +121,7 @@ const Refund = () => {
               If you have a billing dispute or unauthorized charge:
             </p>
             <ul className="list-disc pl-6 space-y-2">
-              <li>Contact us immediately at support@flipflow.com</li>
+              <li>Contact us immediately at sohambhutkar1@gmail.com</li>
               <li>We will investigate and respond within 48 hours</li>
               <li>Provide transaction details and any supporting documentation</li>
             </ul>
@@ -139,8 +139,8 @@ const Refund = () => {
             <h2 className="text-2xl font-semibold">9. Contact Us</h2>
             <p>
               For cancellations, refund requests, or billing questions, contact:{" "}
-              <a href="mailto:support@flipflow.com" className="text-primary hover:underline">
-                support@flipflow.com
+              <a href="mailto:sohambhutkar1@gmail.com" className="text-primary hover:underline">
+                sohambhutkar1@gmail.com
               </a>
             </p>
             <p>
