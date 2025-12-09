@@ -29,3 +29,22 @@ docs
 .env
 .env.*
 *.env
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+
+# Caches
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+.cache/
+
+# System Files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Temporary
+tmp/
+temp/
