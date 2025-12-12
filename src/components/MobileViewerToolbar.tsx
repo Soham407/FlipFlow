@@ -60,7 +60,14 @@ const MobileViewerToolbar: React.FC<MobileViewerToolbarProps> = ({ pdfUrl }) => 
       try {
         const flipbook = (window as any).currentFlipbook;
         const target = flipbook?.target || flipbook;
-        const np = target?.currentPage || target?.currentPageNum || flipbook?.currentPage;
+        // ✅ FIX: Check _activePage first (this is the property that updates during page turns)
+        const np = 
+          target?._activePage || 
+          target?.currentPage || 
+          target?.currentPageNum || 
+          flipbook?._activePage ||
+          flipbook?.currentPage ||
+          flipbook?.pageNumber;
         const tp = target?.totalPages || target?.pageCount || target?.pages?.length || flipbook?.totalPages;
         if (typeof np === "number" && np !== lastPage) {
           lastPage = np;
