@@ -12,6 +12,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { usePdfThumbnail } from '@/hooks/usePdfThumbnail';
 
 interface FlipbookCardProps {
   flipbook: Flipbook;
@@ -23,6 +24,12 @@ interface FlipbookCardProps {
 export function FlipbookCard({ flipbook, onDelete, onCopyEmbed, onUpdate }: FlipbookCardProps) {
   const navigate = useNavigate();
   const identifier = flipbook.slug || flipbook.id;
+  
+  // Generate thumbnail from PDF first page
+  const { thumbnailUrl, loading: thumbnailLoading } = usePdfThumbnail(
+    flipbook.file_path, 
+    !flipbook.is_locked // Only generate thumbnails for unlocked flipbooks
+  );
 
   const handleToggleLock = async () => {
     try {
@@ -65,14 +72,28 @@ export function FlipbookCard({ flipbook, onDelete, onCopyEmbed, onUpdate }: Flip
         </div>
       )}
 
-      {/* Decorative Gradient Background for Thumbnail Placeholder */}
-      <div className="h-48 w-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center border-b">
-        <div className="text-center p-4 group-hover:scale-105 transition-transform duration-300">
-          <FileText className="h-12 w-12 text-muted-foreground/50 mx-auto mb-2" />
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-            Interactive PDF
-          </p>
-        </div>
+      {/* Thumbnail Container */}
+      <div className="h-48 w-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center border-b overflow-hidden">
+        {thumbnailLoading ? (
+          <div className="text-center p-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+            <p className="text-xs text-muted-foreground">Loading thumbnail...</p>
+          </div>
+        ) : thumbnailUrl ? (
+          <img 
+            src={thumbnailUrl} 
+            alt={`${flipbook.title} thumbnail`}
+            className="w-full h-full object-contain"
+            loading="lazy"
+          />
+        ) : (
+          <div className="text-center p-4 group-hover:scale-105 transition-transform duration-300">
+            <FileText className="h-12 w-12 text-muted-foreground/50 mx-auto mb-2" />
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+              Interactive PDF
+            </p>
+          </div>
+        )}
       </div>
 
       <CardHeader className="p-4 pb-2">

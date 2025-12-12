@@ -17,7 +17,18 @@ export function useFlipbooks(userId: string | undefined) {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setFlipbooks((data as unknown as Flipbook[]) || []);
+      
+      // Sort unlocked flipbooks to the top, then by created_at descending
+      const sortedData = (data as unknown as Flipbook[] || []).sort((a, b) => {
+        // If one is locked and the other isn't, unlocked comes first
+        if (a.is_locked !== b.is_locked) {
+          return a.is_locked ? 1 : -1;
+        }
+        // If both have same lock status, sort by created_at descending (newest first)
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+      
+      setFlipbooks(sortedData);
     } catch (error) {
       console.error("Error fetching flipbooks:", error);
       toast.error("Failed to load flipbooks");
