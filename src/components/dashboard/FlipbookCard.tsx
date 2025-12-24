@@ -16,6 +16,7 @@ import {
   BarChart2,
   Lock,
   Unlock,
+  FileWarning,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -45,6 +46,8 @@ export function FlipbookCard({
 }: FlipbookCardProps) {
   const navigate = useNavigate();
   const identifier = flipbook.slug || flipbook.id;
+  const isPermanentlyLocked =
+    flipbook.is_locked && flipbook.lock_reason === "size_limit";
 
   // Generate thumbnail from PDF first page
   const { thumbnailUrl, loading: thumbnailLoading } = usePdfThumbnail(
@@ -74,15 +77,29 @@ export function FlipbookCard({
 
   return (
     <Card
-      className={`group relative overflow-hidden transition-all hover:shadow-md border-4 border-border dark:border-white/20 ${
-        flipbook.is_locked ? "opacity-75 border-dashed" : ""
+      className={`group relative overflow-hidden transition-all hover:shadow-md border-4 ${
+        isPermanentlyLocked
+          ? "border-destructive/50 dark:border-destructive/50 opacity-75 border-dashed"
+          : flipbook.is_locked
+          ? "border-dashed border-border dark:border-white/20 opacity-75"
+          : "border-border dark:border-white/20"
       }`}
     >
       {/* Locked Overlay */}
       {flipbook.is_locked && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg p-4 text-center">
-          <Lock className="w-8 h-8 mb-2 text-muted-foreground" />
-          <p className="font-medium">Locked</p>
+          {isPermanentlyLocked ? (
+            <FileWarning className="w-8 h-8 mb-2 text-destructive" />
+          ) : (
+            <Lock className="w-8 h-8 mb-2 text-muted-foreground" />
+          )}
+          <p
+            className={`font-medium ${
+              isPermanentlyLocked ? "text-destructive" : ""
+            }`}
+          >
+            {isPermanentlyLocked ? "Permanently Locked" : "Locked"}
+          </p>
           <p className="text-xs text-muted-foreground mb-4">
             {flipbook.lock_reason === "size_limit"
               ? "File too large for current plan"
