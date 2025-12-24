@@ -4,7 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Loader2, Upload, Plus, Crown, LogOut, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -23,6 +31,7 @@ import { EmptyState } from "@/components/dashboard/EmptyState";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { PricingModal } from "@/components/dashboard/PricingModal";
 import { toast } from "sonner";
+import { ModeToggle } from "@/components/mode-toggle";
 
 // Hooks & Types
 import { useFlipbooks } from "@/hooks/useFlipbooks";
@@ -42,19 +51,15 @@ const Dashboard = () => {
 
   // 2. Custom Hooks (Business Logic)
 
-  const { 
-    flipbooks, 
-    loading: loadingFlipbooks, 
-    deleteFlipbook, 
-    refetch: refetchFlipbooks 
+  const {
+    flipbooks,
+    loading: loadingFlipbooks,
+    deleteFlipbook,
+    refetch: refetchFlipbooks,
   } = useFlipbooks(user?.id);
 
-  const { 
-    userRole, 
-    profile, 
-    processingPayment, 
-    subscribeToPlan 
-  } = useSubscription(user?.id);
+  const { userRole, profile, processingPayment, subscribeToPlan } =
+    useSubscription(user?.id);
 
   const {
     file,
@@ -67,18 +72,13 @@ const Dashboard = () => {
     uploadFlipbook,
     handleDragOver,
     handleDragLeave,
-    handleDrop
-  } = useFileUpload(
-    userRole, 
-    user?.id, 
-    () => {
-      setIsModalOpen(false); // Close modal on success
-      refetchFlipbooks();    // Refresh list
-    }
-  );
+    handleDrop,
+  } = useFileUpload(userRole, user?.id, () => {
+    setIsModalOpen(false); // Close modal on success
+    refetchFlipbooks(); // Refresh list
+  });
 
   // 3. Event Handlers
-
 
   const handleUploadClick = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +92,7 @@ const Dashboard = () => {
       const base = window.location.origin;
       const url = `${base}/view/${slugOrId}`;
       const iframe = `<iframe src="${url}" style="width:100%;height:600px;border:0;" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
-      
+
       await navigator.clipboard.writeText(iframe);
       toast.success("Embed code copied to clipboard!");
     } catch (error) {
@@ -121,18 +121,30 @@ const Dashboard = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <img src="/Images/FF Logo.png" alt="FlipFlow" className="h-10 w-10 sm:h-12 sm:w-12" />
+              <img
+                src="/Images/FF Logo.png"
+                alt="FlipFlow"
+                className="h-10 w-10 sm:h-12 sm:w-12"
+              />
               <div>
                 <h1 className="text-xl font-bold">FlipFlow</h1>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Badge variant={userRole === 'free' ? 'secondary' : 'default'} className="gap-1 hidden sm:flex">
-                {userRole !== 'free' && <Crown className="h-3 w-3" />}
+              <Badge
+                variant={userRole === "free" ? "secondary" : "default"}
+                className="gap-1 hidden sm:flex"
+              >
+                {userRole !== "free" && <Crown className="h-3 w-3" />}
                 {userRole.charAt(0).toUpperCase() + userRole.slice(1)} Plan
               </Badge>
-              {userRole === 'free' && (
-                <Button onClick={() => setIsPricingModalOpen(true)} disabled={processingPayment} size="sm" className="gap-1.5">
+              {userRole === "free" && (
+                <Button
+                  onClick={() => setIsPricingModalOpen(true)}
+                  disabled={processingPayment}
+                  size="sm"
+                  className="gap-1.5"
+                >
                   {processingPayment ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -142,15 +154,25 @@ const Dashboard = () => {
                   <span className="sm:hidden">Upgrade</span>
                 </Button>
               )}
-              
+
+              <ModeToggle />
+
               {/* Profile Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="relative h-9 w-9 rounded-full p-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="relative h-9 w-9 rounded-full p-0"
+                  >
                     <Avatar className="h-9 w-9">
-                      <AvatarImage 
-                        src={profile?.avatar_url || user?.user_metadata?.avatar_url || undefined} 
-                        alt={profile?.full_name || user?.email || "User"} 
+                      <AvatarImage
+                        src={
+                          profile?.avatar_url ||
+                          user?.user_metadata?.avatar_url ||
+                          undefined
+                        }
+                        alt={profile?.full_name || user?.email || "User"}
                       />
                       <AvatarFallback>
                         <User className="h-4 w-4" />
@@ -162,7 +184,9 @@ const Dashboard = () => {
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        {profile?.full_name || user?.user_metadata?.name || "User"}
+                        {profile?.full_name ||
+                          user?.user_metadata?.name ||
+                          "User"}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
                         {user?.email}
@@ -195,10 +219,11 @@ const Dashboard = () => {
             <div>
               <h2 className="text-2xl font-bold">Your Flipbooks</h2>
               <p className="text-muted-foreground mt-1">
-                {flipbooks.length === 0 
-                  ? "Create your first flipbook to get started" 
-                  : `Managing ${flipbooks.length} flipbook${flipbooks.length !== 1 ? 's' : ''}`
-                }
+                {flipbooks.length === 0
+                  ? "Create your first flipbook to get started"
+                  : `Managing ${flipbooks.length} flipbook${
+                      flipbooks.length !== 1 ? "s" : ""
+                    }`}
               </p>
             </div>
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -215,12 +240,15 @@ const Dashboard = () => {
                   <DialogDescription>
                     Upload a PDF file to create a new flipbook.
                     {(() => {
-                      const planKey = userRole.toUpperCase() as keyof typeof PLANS;
+                      const planKey =
+                        userRole.toUpperCase() as keyof typeof PLANS;
                       const plan = PLANS[planKey] || PLANS.FREE;
                       const remaining = plan.maxFlipbooks - flipbooks.length;
                       return plan.maxFlipbooks !== Infinity && remaining > 0
-                        ? ` (${remaining} upload${remaining !== 1 ? 's' : ''} remaining)`
-                        : '';
+                        ? ` (${remaining} upload${
+                            remaining !== 1 ? "s" : ""
+                          } remaining)`
+                        : "";
                     })()}
                   </DialogDescription>
                 </DialogHeader>
@@ -234,32 +262,44 @@ const Dashboard = () => {
                         onDrop={handleDrop}
                         className={`
                           relative border-2 border-dashed rounded-lg p-8 text-center transition-colors
-                          ${isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}
-                          ${file ? 'bg-muted/50' : ''}
+                          ${
+                            isDragging
+                              ? "border-primary bg-primary/5"
+                              : "border-muted-foreground/25"
+                          }
+                          ${file ? "bg-muted/50" : ""}
                         `}
                       >
                         <Input
                           id="file"
                           type="file"
                           accept=".pdf"
-                          onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
+                          onChange={(e) =>
+                            handleFileSelect(e.target.files?.[0] || null)
+                          }
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         />
                         <div className="pointer-events-none">
                           <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
                           {file ? (
                             <div>
-                              <p className="font-medium text-foreground">{file.name}</p>
+                              <p className="font-medium text-foreground">
+                                {file.name}
+                              </p>
                               <p className="text-sm text-muted-foreground mt-1">
                                 {(file.size / 1024 / 1024).toFixed(2)} MB
                               </p>
                             </div>
                           ) : (
                             <div>
-                              <p className="font-medium text-foreground">Drop your PDF here or click to browse</p>
+                              <p className="font-medium text-foreground">
+                                Drop your PDF here or click to browse
+                              </p>
                               <p className="text-sm text-muted-foreground mt-1">
-                                Maximum file size: {(() => {
-                                  const planKey = userRole.toUpperCase() as keyof typeof PLANS;
+                                Maximum file size:{" "}
+                                {(() => {
+                                  const planKey =
+                                    userRole.toUpperCase() as keyof typeof PLANS;
                                   const plan = PLANS[planKey] || PLANS.FREE;
                                   return `${plan.maxFileSizeMB}MB`;
                                 })()}
@@ -284,10 +324,16 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <DialogFooter className="mt-6">
-                    <Button type="submit" disabled={uploading} className="w-full">
-                      {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button
+                      type="submit"
+                      disabled={uploading}
+                      className="w-full"
+                    >
+                      {uploading && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
                       <Upload className="mr-2 h-4 w-4" />
-                      {uploading ? 'Uploading...' : 'Upload Flipbook'}
+                      {uploading ? "Uploading..." : "Upload Flipbook"}
                     </Button>
                   </DialogFooter>
                 </form>
