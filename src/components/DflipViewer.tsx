@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useState } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useEffect, useRef, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { DflipOptions, DflipInstance } from "@/types";
 
 interface DflipViewerProps {
   pdfUrl: string;
@@ -13,30 +13,24 @@ interface DflipViewerProps {
   onPageChange?: (current: number, total: number) => void;
 }
 
-declare global {
-  interface Window {
-    $: any;
-    jQuery: any;
-    loadFlipbook: (element: HTMLElement, url: string, rtlMode: boolean, page: number, pdfId: string) => void;
-    getLastPage: (pdfId: string) => Promise<number>;
-    onPdfProgress?: (progress: number) => void;
-    onPdfReady?: () => void;
-    isMobileDevice?: boolean;
-  }
-}
-
-export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageChange }: DflipViewerProps) => {
+export const DflipViewer = ({
+  pdfUrl,
+  flipbookId,
+  onReady,
+  onProgress,
+  onPageChange,
+}: DflipViewerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scriptsReady, setScriptsReady] = useState(false);
   const [scriptError, setScriptError] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isReady, setIsReady] = useState(false);
   const flipbookInitialized = useRef(false);
-  
+
   const pagePollRef = useRef<number | null>(null);
   const lastPageRef = useRef<number>(-1);
   const lastTotalRef = useRef<number>(-1);
-  
+
   // Use hook, but we will also double-check width manually
   const isMobile = useIsMobile();
 
@@ -47,18 +41,17 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
 
     const checkScripts = () => {
       if (
-        typeof window.$ !== 'undefined' &&
-        typeof window.loadFlipbook === 'function' &&
-        typeof window.getLastPage === 'function'
+        typeof window.$ !== "undefined" &&
+        typeof window.loadFlipbook === "function" &&
+        typeof window.getLastPage === "function"
       ) {
-        console.log('Dflip scripts ready');
         setScriptsReady(true);
         setScriptError(false);
       } else if (retryCount < maxRetries) {
         retryCount++;
         setTimeout(checkScripts, 100);
       } else {
-        console.error('Dflip scripts failed to load after maximum retries');
+        console.error("Dflip scripts failed to load after maximum retries");
         setScriptError(true);
       }
     };
@@ -76,7 +69,6 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
     };
 
     window.onPdfReady = () => {
-      console.log('PDF ready in viewer');
       setIsReady(true);
       onReady?.();
       startPagePolling();
@@ -97,8 +89,7 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
     }
 
     if (!containerRef.current) {
-        console.warn("Container ref is null, retrying...");
-        return;
+      return;
     }
 
     const initFlipbook = () => {
@@ -107,37 +98,43 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
         const isSmallScreen = window.innerWidth < 768;
         const shouldUseSingleMode = isMobile || isSmallScreen;
 
-        console.log('Initializing flipbook viewer:', { pdfUrl, flipbookId, mode: shouldUseSingleMode ? 'SINGLE' : 'DOUBLE' });
-        
         if (containerRef.current) {
-            // ✅ FORCE SINGLE PAGE MODE via Global Option
-            const optionName = `option_${flipbookId}`;
-            
-            // We set specific flags that dFlip uses to determine layout
-            (window as any)[optionName] = {
-                // 1 = Single Page (Slide), 2 = Double Page (Book)
-                pageMode: shouldUseSingleMode ? 1 : 2, 
-                
-                // Some versions of dFlip use this flag specifically
-                singlePageMode: shouldUseSingleMode,
-                
-                // Force 3D on mobile for the "Stack" effect
-                webgl: true, 
-                
-                height: '100%',
-                duration: 800,
-                
-                // Disables the "Smart" auto-switch that might be forcing Double mode on wider phones
-                autoPageMode: false 
-            };
+          // ✅ Sanitize ID for safe variable naming and FORCE SINGLE PAGE MODE via Global Option
+          const sanitizedId = flipbookId.replace(/[^a-zA-Z0-9]/g, "_");
+          const optionName = `option_${sanitizedId}`;
 
-            containerRef.current.innerHTML = ''; 
-            window.loadFlipbook(containerRef.current, pdfUrl, false, 1, flipbookId);
-            
-            flipbookInitialized.current = true;
+          // We set specific flags that dFlip uses to determine layout
+          const config: DflipOptions = {
+            // 1 = Single Page (Slide), 2 = Double Page (Book)
+            pageMode: shouldUseSingleMode ? 1 : 2,
+
+            // Some versions of dFlip use this flag specifically
+            singlePageMode: shouldUseSingleMode,
+
+            // Force 3D on mobile for the "Stack" effect
+            webgl: true,
+
+            height: "100%",
+            duration: 800,
+
+            // Disables the "Smart" auto-switch that might be forcing Double mode on wider phones
+            autoPageMode: false,
+          };
+          (window as any)[optionName] = config;
+
+          containerRef.current.innerHTML = "";
+          window.loadFlipbook(
+            containerRef.current,
+            pdfUrl,
+            false,
+            1,
+            flipbookId
+          );
+
+          flipbookInitialized.current = true;
         }
       } catch (error) {
-        console.error('Error initializing flipbook:', error);
+        console.error("Error initializing flipbook:", error);
         setScriptError(true);
       }
     };
@@ -152,17 +149,26 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
   // ... (Rest of the file: pollPages, startPagePolling, stopPagePolling, cleanup, return)
   // KEEP THE REST OF THE FILE EXACTLY AS IT WAS BEFORE
   // (I am omitting it to save space, but ensure you copy the polling/render logic from previous version)
-  
+
   // ⬇️ RE-INSERTING THE POLLING AND RENDER LOGIC FOR YOU TO COPY-PASTE IF NEEDED ⬇️
   const pollPages = () => {
     try {
       if (!containerRef.current) return;
-      const $container = (window as any).jQuery?.(containerRef.current);
-      const flipbook = $container?.data('dflip');
+      const $container = window.jQuery?.(containerRef.current);
+      const flipbook = $container?.data("dflip") as DflipInstance;
       const target = flipbook?.target || flipbook;
-      const current = target?._activePage ?? target?.currentPage ?? target?.currentPageNum ?? flipbook?.currentPage ?? flipbook?.pageNumber;
-      const total = target?.totalPages ?? target?.pageCount ?? target?.pages?.length ?? flipbook?.totalPages;
-      if (typeof current === 'number' && typeof total === 'number') {
+      const current =
+        target?._activePage ??
+        target?.currentPage ??
+        target?.currentPageNum ??
+        flipbook?.currentPage ??
+        flipbook?.pageNumber;
+      const total =
+        target?.totalPages ??
+        target?.pageCount ??
+        target?.pages?.length ??
+        flipbook?.totalPages;
+      if (typeof current === "number" && typeof total === "number") {
         if (current !== lastPageRef.current || total !== lastTotalRef.current) {
           lastPageRef.current = current;
           lastTotalRef.current = total;
@@ -194,21 +200,25 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
         if (currentContainer) {
           try {
             const $container = window.$(currentContainer);
-            if ($container && $container.data && typeof $container.data('dflip') !== 'undefined') {
-              const flipbook = $container.data('dflip');
-              if (flipbook && typeof flipbook.dispose === 'function') {
+            if (
+              $container &&
+              $container.data &&
+              typeof $container.data("dflip") !== "undefined"
+            ) {
+              const flipbook = $container.data("dflip");
+              if (flipbook && typeof flipbook.dispose === "function") {
                 flipbook.dispose();
               }
             }
           } catch (error) {
-            console.warn('Error disposing flipbook:', error);
+            console.warn("Error disposing flipbook:", error);
           }
           flipbookInitialized.current = false;
         }
       }
       stopPagePolling();
     };
-  }, []); 
+  }, []);
 
   if (scriptError) {
     return (
@@ -216,7 +226,8 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Error Loading Viewer</AlertTitle>
         <AlertDescription>
-          Failed to load the flipbook viewer scripts. Please refresh the page and try again.
+          Failed to load the flipbook viewer scripts. Please refresh the page
+          and try again.
         </AlertDescription>
       </Alert>
     );
@@ -247,7 +258,7 @@ export const DflipViewer = ({ pdfUrl, flipbookId, onReady, onProgress, onPageCha
         ref={containerRef}
         id="flipbookContainer"
         className="w-full h-full"
-        style={{ visibility: (!scriptsReady || !isReady) ? 'hidden' : 'visible' }}
+        style={{ visibility: !scriptsReady || !isReady ? "hidden" : "visible" }}
       />
     </div>
   );

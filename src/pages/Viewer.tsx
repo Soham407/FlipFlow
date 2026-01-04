@@ -37,14 +37,23 @@ const Viewer = () => {
   const [totalPages, setTotalPages] = useState<number>(0);
   const viewIdRef = useRef<string | null>(null);
   const viewStartTimeRef = useRef<number>(Date.now());
-  const sessionIdRef = useRef<string>(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const sessionIdRef = useRef<string>(
+    `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  );
 
   useEffect(() => {
     const fetchFlipbook = async () => {
       try {
         const routeParam = (id as string) || "";
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(routeParam);
-        const { data, error } = await supabase.from("flipbooks").select("*").eq(isUuid ? "id" : "slug", routeParam).maybeSingle();
+        const isUuid =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            routeParam
+          );
+        const { data, error } = await supabase
+          .from("flipbooks")
+          .select("*")
+          .eq(isUuid ? "id" : "slug", routeParam)
+          .maybeSingle();
         if (error) throw error;
         if (data) setFlipbook(data);
       } catch (error) {
@@ -71,7 +80,7 @@ const Viewer = () => {
       if (!flipbook?.id || viewIdRef.current) return;
       viewStartTimeRef.current = Date.now();
       try {
-        const { data: viewId } = await supabase.rpc('track_flipbook_view', {
+        const { data: viewId } = await supabase.rpc("track_flipbook_view", {
           _flipbook_id: flipbook.id,
           _session_id: sessionIdRef.current,
           _user_agent: navigator.userAgent,
@@ -80,7 +89,7 @@ const Viewer = () => {
         viewIdRef.current = viewId;
         trackFlipbookView(flipbook.id, flipbook.title);
       } catch (error) {
-        console.error('Error tracking view:', error);
+        console.error("Error tracking view:", error);
       }
     };
     if (flipbook && publicUrl) trackView();
@@ -90,15 +99,25 @@ const Viewer = () => {
     const updateTime = async () => {
       if (viewIdRef.current) {
         const time = Math.floor((Date.now() - viewStartTimeRef.current) / 1000);
-        if (time > 0) await supabase.rpc('update_view_time_spent', { _view_id: viewIdRef.current, _time_spent_seconds: time });
+        if (time > 0) {
+          try {
+            await supabase.rpc("update_view_time_spent", {
+              _view_id: viewIdRef.current,
+              _time_spent_seconds: time,
+            });
+          } catch (error) {
+            // Silent catch on unmount update
+          }
+        }
       }
     };
-    window.addEventListener('beforeunload', updateTime);
+
+    window.addEventListener("beforeunload", updateTime);
     return () => {
-      window.removeEventListener('beforeunload', updateTime);
+      window.removeEventListener("beforeunload", updateTime);
       updateTime();
     };
-  }, [flipbook]);
+  }, [flipbook?.id]);
 
   // Handle click-outside-to-close for mobile thumbnail sidebar
   useEffect(() => {
@@ -112,12 +131,14 @@ const Viewer = () => {
       const container = document.getElementById("flipbookContainer");
       if (!container || !(window as { jQuery?: unknown }).jQuery) return;
 
-      const $container = ((window as { jQuery: JQueryStatic }).jQuery)(container);
+      const $container = (window as { jQuery: JQueryStatic }).jQuery(container);
       const $sidemenu = $container.find(".df-sidemenu");
       if (!$sidemenu.length) return;
 
       // Create overlay at body level for proper z-index stacking
-      overlay = document.body.querySelector(".df-sidemenu-overlay") as HTMLElement;
+      overlay = document.body.querySelector(
+        ".df-sidemenu-overlay"
+      ) as HTMLElement;
       if (!overlay) {
         overlay = document.createElement("div");
         overlay.className = "df-sidemenu-overlay";
@@ -153,8 +174,9 @@ const Viewer = () => {
       };
 
       // Document-level click handler as backup (only active when sidebar is open)
-      let documentClickHandler: ((e: MouseEvent | TouchEvent) => void) | null = null;
-      
+      let documentClickHandler: ((e: MouseEvent | TouchEvent) => void) | null =
+        null;
+
       const enableDocumentClick = () => {
         if (documentClickHandler) return; // Already enabled
         documentClickHandler = (e: MouseEvent | TouchEvent) => {
@@ -201,7 +223,7 @@ const Viewer = () => {
 
       observer.observe($sidemenu[0], {
         attributes: true,
-        attributeFilter: ["class"]
+        attributeFilter: ["class"],
       });
 
       // Also listen for clicks on the grid button to update overlay
@@ -210,11 +232,19 @@ const Viewer = () => {
       };
 
       // Find grid buttons and add listeners
-      const gridButtons = document.querySelectorAll('[title*="Thumbnail"], [title*="thumbnail"], [title*="Grid"], [title*="grid"]');
-      const gridButtonListeners: Array<{ element: Element; handler: () => void }> = [];
-      gridButtons.forEach(btn => {
-        btn.addEventListener('click', handleGridButtonClick);
-        gridButtonListeners.push({ element: btn, handler: handleGridButtonClick });
+      const gridButtons = document.querySelectorAll(
+        '[title*="Thumbnail"], [title*="thumbnail"], [title*="Grid"], [title*="grid"]'
+      );
+      const gridButtonListeners: Array<{
+        element: Element;
+        handler: () => void;
+      }> = [];
+      gridButtons.forEach((btn) => {
+        btn.addEventListener("click", handleGridButtonClick);
+        gridButtonListeners.push({
+          element: btn,
+          handler: handleGridButtonClick,
+        });
       });
 
       // Initial check
@@ -235,7 +265,7 @@ const Viewer = () => {
           overlay.removeEventListener("touchend", handleClick);
         }
         gridButtonListeners.forEach(({ element, handler }) => {
-          element.removeEventListener('click', handler);
+          element.removeEventListener("click", handler);
         });
       };
     };
@@ -246,7 +276,10 @@ const Viewer = () => {
     const maxRetries = 30; // 9 seconds max
 
     const checkReady = () => {
-      if ((window as { jQuery?: unknown }).jQuery && document.getElementById("flipbookContainer")) {
+      if (
+        (window as { jQuery?: unknown }).jQuery &&
+        document.getElementById("flipbookContainer")
+      ) {
         if (checkInterval) clearInterval(checkInterval);
         setupOverlay();
       } else if (retries < maxRetries) {
@@ -269,33 +302,49 @@ const Viewer = () => {
   }, [isMobile, flipbook]);
 
   if (loading || !flipbook || !publicUrl) {
-    return <div className="flex min-h-screen items-center justify-center"><Card><CardContent className="py-8"><p className="text-muted-foreground">Loading...</p></CardContent></Card></div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Card>
+          <CardContent className="py-8">
+            <p className="text-muted-foreground">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
-  const readingPercent = totalPages > 0 ? Math.min(100, Math.round((currentPage / totalPages) * 100)) : 0;
-  const viewerUrl = `${window.location.origin}/view/${flipbook.slug || flipbook.id}`;
+  const readingPercent =
+    totalPages > 0
+      ? Math.min(100, Math.round((currentPage / totalPages) * 100))
+      : 0;
+  const viewerUrl = `${window.location.origin}/view/${
+    flipbook.slug || flipbook.id
+  }`;
 
   return (
-    <div className="flex flex-col h-[100dvh] relative 	bg-[#EDEDED] overflow-hidden" >
+    <div className="flex flex-col h-[100dvh] relative 	bg-[#EDEDED] overflow-hidden">
       <Helmet>
         <title>{flipbook.title} - FlipFlow</title>
-        <meta 
-          name="description" 
-          content={`View ${flipbook.title} - An interactive flipbook created with FlipFlow. Read, share, and enjoy this digital publication.`} 
+        <meta
+          name="description"
+          content={`View ${flipbook.title} - An interactive flipbook created with FlipFlow. Read, share, and enjoy this digital publication.`}
         />
         <meta property="og:title" content={`${flipbook.title} - FlipFlow`} />
-        <meta 
-          property="og:description" 
-          content={`View this interactive flipbook: ${flipbook.title}`} 
+        <meta
+          property="og:description"
+          content={`View this interactive flipbook: ${flipbook.title}`}
         />
         <meta property="og:type" content="article" />
         <meta property="og:url" content={viewerUrl} />
-        <meta property="og:image" content="https://flipflow.themediatree.co.in/Images/og-preview.png" />
+        <meta
+          property="og:image"
+          content="https://flipflow.themediatree.co.in/Images/og-preview.png"
+        />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={`${flipbook.title} - FlipFlow`} />
-        <meta 
-          name="twitter:description" 
-          content={`Interactive flipbook: ${flipbook.title}`} 
+        <meta
+          name="twitter:description"
+          content={`Interactive flipbook: ${flipbook.title}`}
         />
         <link rel="canonical" href={viewerUrl} />
       </Helmet>
@@ -304,19 +353,43 @@ const Viewer = () => {
       {!isMobile && (
         <header className="flex items-center justify-between px-4 py-3 bg-background border-b z-30">
           <div className="flex items-center gap-3">
-            <Button asChild variant="ghost" size="sm"><Link to="/dashboard"><ArrowLeft className="h-4 w-4 mr-2" />Dashboard</Link></Button>
-            <h1 className="text-lg font-semibold truncate max-w-[40vw]">{flipbook.title}</h1>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/dashboard">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Dashboard
+              </Link>
+            </Button>
+            <h1 className="text-lg font-semibold truncate max-w-[40vw]">
+              {flipbook.title}
+            </h1>
           </div>
-          <Button variant="outline" size="sm" onClick={async () => { await navigator.clipboard.writeText(`${window.location.origin}/view/${flipbook.slug || flipbook.id}`); toast.success("Link copied!"); }}>
-            <Share2 className="h-4 w-4 mr-2" />Share
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              await navigator.clipboard.writeText(
+                `${window.location.origin}/view/${flipbook.slug || flipbook.id}`
+              );
+              toast.success("Link copied!");
+            }}
+          >
+            <Share2 className="h-4 w-4 mr-2" />
+            Share
           </Button>
         </header>
       )}
 
       {/* Floating Back Button (Mobile) */}
       {isMobile && (
-        <Button asChild variant="ghost" size="icon" className="fixed top-4 left-4 z-50 rounded-full bg-background/60 backdrop-blur-md shadow-sm border border-border/40">
-          <Link to="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
+        <Button
+          asChild
+          variant="ghost"
+          size="icon"
+          className="fixed top-4 left-4 z-50 rounded-full bg-background/60 backdrop-blur-md shadow-sm border border-border/40"
+        >
+          <Link to="/dashboard">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
         </Button>
       )}
 

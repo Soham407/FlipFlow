@@ -87,11 +87,21 @@ export function FlipbookCard({
     >
       {/* Locked Overlay */}
       {flipbook.is_locked && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg p-4 text-center">
+        <div
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg p-4 text-center"
+          role="alert"
+          aria-live="polite"
+        >
           {isPermanentlyLocked ? (
-            <FileWarning className="w-8 h-8 mb-2 text-destructive" />
+            <FileWarning
+              className="w-8 h-8 mb-2 text-destructive"
+              aria-hidden="true"
+            />
           ) : (
-            <Lock className="w-8 h-8 mb-2 text-muted-foreground" />
+            <Lock
+              className="w-8 h-8 mb-2 text-muted-foreground"
+              aria-hidden="true"
+            />
           )}
           <p
             className={`font-medium ${
@@ -103,13 +113,18 @@ export function FlipbookCard({
           <p className="text-xs text-muted-foreground mb-4">
             {flipbook.lock_reason === "size_limit"
               ? "File too large for current plan"
-              : "Plan limit reached"}
+              : "Plan limit reached - Lock other books to unlock this one"}
           </p>
 
           {/* Only show Unlock if size permits */}
           {flipbook.lock_reason !== "size_limit" && (
-            <Button onClick={handleToggleLock} size="sm" variant="outline">
-              <Unlock className="w-4 h-4 mr-2" />
+            <Button
+              onClick={handleToggleLock}
+              size="sm"
+              variant="outline"
+              aria-label={`Unlock ${flipbook.title}`}
+            >
+              <Unlock className="w-4 h-4 mr-2" aria-hidden="true" />
               Unlock
             </Button>
           )}
@@ -119,8 +134,15 @@ export function FlipbookCard({
       {/* Thumbnail Container */}
       <div className="h-48 w-full bg-gradient-to-br from-muted/50 to-muted flex items-center justify-center border-b overflow-hidden">
         {thumbnailLoading ? (
-          <div className="text-center p-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <div
+            className="text-center p-4"
+            role="status"
+            aria-label="Loading thumbnail"
+          >
+            <div
+              className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"
+              aria-hidden="true"
+            ></div>
             <p className="text-xs text-muted-foreground">
               Loading thumbnail...
             </p>
@@ -159,9 +181,9 @@ export function FlipbookCard({
                 size="icon"
                 className="h-8 w-8 text-muted-foreground"
                 onClick={handleToggleLock}
-                title="Lock to free up space"
+                aria-label="Lock flipbook to free up space"
               >
-                <Lock className="h-4 w-4" />
+                <Lock className="h-4 w-4" aria-hidden="true" />
               </Button>
             )}
 

@@ -28,8 +28,10 @@ const App = () => {
     // Initialize Google Analytics
     initGA();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[App] Auth state changed:', event, session ? 'Session exists' : 'No session');
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, _session) => {
+      // Auth state tracking can be added here if needed for analytics
     });
 
     return () => subscription.unsubscribe();
@@ -47,20 +49,20 @@ const App = () => {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/view/:id" element={<Viewer />} />
-            
+
             {/* Legal Pages */}
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/refund" element={<Refund />} />
             <Route path="/contact" element={<Contact />} />
-            
+
             {/* Protected Routes - Require Authentication */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/analytics/:id" element={<Analytics />} />
             </Route>
-            
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1,4 +1,4 @@
-import ReactGA from 'react-ga4';
+import ReactGA from "react-ga4";
 
 const GA4_MEASUREMENT_ID = import.meta.env.VITE_GA4_MEASUREMENT_ID;
 
@@ -6,7 +6,7 @@ let isInitialized = false;
 
 export const initGA = () => {
   if (!GA4_MEASUREMENT_ID) {
-    console.warn('GA4 Measurement ID not found. Analytics will be disabled.');
+    console.warn("GA4 Measurement ID not found. Analytics will be disabled.");
     return;
   }
 
@@ -17,9 +17,8 @@ export const initGA = () => {
   try {
     ReactGA.initialize(GA4_MEASUREMENT_ID);
     isInitialized = true;
-    console.log('GA4 initialized successfully');
   } catch (error) {
-    console.error('Failed to initialize GA4:', error);
+    console.error("Failed to initialize GA4:", error);
   }
 };
 
@@ -28,18 +27,18 @@ export const trackPageView = (page: string, title?: string) => {
 
   try {
     ReactGA.send({
-      hitType: 'pageview',
+      hitType: "pageview",
       page,
       title: title || page,
     });
   } catch (error) {
-    console.error('Failed to track page view:', error);
+    console.error("Failed to track page view:", error);
   }
 };
 
 export const trackEvent = (
   action: string,
-  category: string = 'Flipbook',
+  category: string = "Flipbook",
   label?: string,
   value?: number
 ) => {
@@ -52,18 +51,21 @@ export const trackEvent = (
       value,
     });
   } catch (error) {
-    console.error('Failed to track event:', error);
+    console.error("Failed to track event:", error);
   }
 };
 
-export const trackFlipbookView = (flipbookId: string, flipbookTitle?: string) => {
+export const trackFlipbookView = (
+  flipbookId: string,
+  flipbookTitle?: string
+) => {
   if (!isInitialized || !GA4_MEASUREMENT_ID) return;
 
   try {
-    trackEvent('view_flipbook', 'Flipbook', flipbookId);
+    trackEvent("view_flipbook", "Flipbook", flipbookId);
     trackPageView(`/view/${flipbookId}`, flipbookTitle);
   } catch (error) {
-    console.error('Failed to track flipbook view:', error);
+    console.error("Failed to track flipbook view:", error);
   }
 };
 
@@ -71,9 +73,8 @@ export const trackTimeSpent = (flipbookId: string, seconds: number) => {
   if (!isInitialized || !GA4_MEASUREMENT_ID) return;
 
   try {
-    trackEvent('time_spent', 'Flipbook', flipbookId, seconds);
+    trackEvent("time_spent", "Flipbook", flipbookId, seconds);
   } catch (error) {
-    console.error('Failed to track time spent:', error);
+    console.error("Failed to track time spent:", error);
   }
 };
-

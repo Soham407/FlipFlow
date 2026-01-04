@@ -5,7 +5,7 @@ import { UserRole, Profile } from "../types";
 import { PAYMENT } from "../config/constants";
 
 export function useSubscription(userId: string | undefined) {
-  const [userRole, setUserRole] = useState<UserRole>('free');
+  const [userRole, setUserRole] = useState<UserRole>("free");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [processingPayment, setProcessingPayment] = useState(false);
 
@@ -24,25 +24,25 @@ export function useSubscription(userId: string | undefined) {
       .select("*")
       .eq("user_id", userId)
       .single();
-    
+
     if (data) setProfile(data as unknown as Profile);
   };
 
   const fetchUserRole = async () => {
     if (!userId) return;
-    
+
     // Check user_roles table
     const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (roleData) {
       setUserRole(roleData.role as UserRole);
     } else {
       // Default to free if no record
-      setUserRole('free');
+      setUserRole("free");
     }
   };
 
@@ -56,7 +56,10 @@ export function useSubscription(userId: string | undefined) {
     });
   };
 
-  const subscribeToPlan = async (planId: string, userEmail: string | undefined) => {
+  const subscribeToPlan = async (
+    planId: string,
+    userEmail: string | undefined
+  ) => {
     setProcessingPayment(true);
     try {
       const res = await initializeRazorpay();
@@ -65,32 +68,24 @@ export function useSubscription(userId: string | undefined) {
         return;
       }
 
-      const { data: orderData, error: orderError } = await supabase.functions.invoke('create-razorpay-order', {
-        body: { planId }
-      });
-      
-      console.log('Edge function response:', { orderData, orderError });
-      console.log('Plan ID sent:', planId);
-      
+      const { data: orderData, error: orderError } =
+        await supabase.functions.invoke("create-razorpay-order", {
+          body: { planId },
+        });
+
       if (orderError) {
-        console.error('Edge function error details:', orderError);
-        console.error('Error message:', orderError.message);
-        console.error('Error context:', orderError.context);
-        
         // Try to extract the actual error from the response
         if (orderError.context instanceof Response) {
           const errorBody = await orderError.context.json().catch(() => null);
-          console.error('Actual error from edge function:', errorBody);
           if (errorBody?.error) {
             throw new Error(errorBody.error);
           }
         }
-        
+
         throw orderError;
       }
-      
+
       if (orderData?.error) {
-        console.error('Edge function returned error in data:', orderData.error);
         throw new Error(orderData.error);
       }
 
@@ -99,24 +94,40 @@ export function useSubscription(userId: string | undefined) {
         amount: orderData.amount,
         currency: orderData.currency,
         name: "FlipFlow",
-        description: `Subscription to ${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan`,
+        description: `Subscription to ${
+          planId.charAt(0).toUpperCase() + planId.slice(1)
+        } Plan`,
         order_id: orderData.orderId,
-        handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+        handler: async (response: {
+          razorpay_order_id: string;
+          razorpay_payment_id: string;
+          razorpay_signature: string;
+        }) => {
           try {
-            const { error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
-              body: {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                planId: planId,
-              },
-            });
+            const { error: verifyError } = await supabase.functions.invoke(
+              "verify-razorpay-payment",
+              {
+                body: {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  planId: planId,
+                },
+              }
+            );
 
             if (verifyError) throw verifyError;
-            toast.success(`Welcome to FlipFlow ${planId.charAt(0).toUpperCase() + planId.slice(1)}! 🎉`);
+            toast.success(
+              `Welcome to FlipFlow ${
+                planId.charAt(0).toUpperCase() + planId.slice(1)
+              }! 🎉`
+            );
             fetchUserRole(); // Refresh role
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "Payment verification failed";
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : "Payment verification failed";
             toast.error(errorMessage);
           }
         },
@@ -124,10 +135,15 @@ export function useSubscription(userId: string | undefined) {
         theme: { color: "#3b82f6" },
       };
 
-      const paymentObject = new (window as unknown as { Razorpay: new (options: unknown) => { open: () => void } }).Razorpay(options);
+      const paymentObject = new (
+        window as unknown as {
+          Razorpay: new (options: unknown) => { open: () => void };
+        }
+      ).Razorpay(options);
       paymentObject.open();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Payment failed";
+      const errorMessage =
+        error instanceof Error ? error.message : "Payment failed";
       toast.error(errorMessage);
     } finally {
       setProcessingPayment(false);

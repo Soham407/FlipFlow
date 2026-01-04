@@ -36,4 +36,55 @@ export interface ViewEvent {
   session_id?: string | null;
 }
 
-export type UserRole = 'free' | 'starter' | 'hobby' | 'business' | 'pro';
+export type UserRole = "free" | "starter" | "hobby" | "business" | "pro";
+
+// Dflip Flipbook types
+export interface DflipInstance {
+  target?: any;
+  ui?: {
+    setPageMode?: (single: boolean) => void;
+  };
+  currentPage?: number;
+  totalPages?: number;
+  pageNumber?: number;
+  pageCount?: number;
+  zoom?: (delta: number) => void;
+  resize?: () => void;
+  dispose?: () => void;
+  prev?: () => void;
+  next?: () => void;
+  gotoPage?: (page: number) => void;
+  switchFullscreen?: () => void;
+  fullscreen?: () => void;
+  contentProvider?: {
+    initThumbs?: () => void;
+  };
+}
+
+export interface DflipOptions {
+  pageMode?: 1 | 2;
+  singlePageMode?: boolean;
+  webgl?: boolean;
+  height?: string;
+  duration?: number;
+  autoPageMode?: boolean;
+  [key: string]: any;
+}
+
+declare global {
+  interface Window {
+    currentFlipbook?: DflipInstance;
+    loadFlipbook?: (
+      element: HTMLElement,
+      url: string,
+      rtl: boolean,
+      startPage: number,
+      id: string
+    ) => void;
+    getLastPage?: (id: string) => Promise<number>;
+    onPdfProgress?: (progress: number) => void;
+    onPdfReady?: () => void;
+    jQuery?: any;
+    $?: any;
+  }
+}

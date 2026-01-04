@@ -4,7 +4,11 @@ import { toast } from "sonner";
 import { PLANS } from "../config/constants";
 import { UserRole } from "../types";
 
-export function useFileUpload(userRole: UserRole, userId: string | undefined, onSuccess: () => void) {
+export function useFileUpload(
+  userRole: UserRole,
+  userId: string | undefined,
+  onSuccess: () => void
+) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [title, setTitle] = useState("");
@@ -22,16 +26,22 @@ export function useFileUpload(userRole: UserRole, userId: string | undefined, on
     // Dynamic Plan Lookup - Convert userRole to uppercase to match PLANS keys
     const planKey = userRole.toUpperCase() as keyof typeof PLANS;
     const plan = PLANS[planKey] || PLANS.FREE; // Fallback to FREE if role not found
-    
+
     // Check count limit
     if (currentFlipbookCount >= plan.maxFlipbooks) {
-      toast.error(`Your ${plan.name} plan limit is ${plan.maxFlipbooks} flipbook${plan.maxFlipbooks !== 1 ? 's' : ''}. Upgrade for more!`);
+      toast.error(
+        `Your ${plan.name} plan limit is ${plan.maxFlipbooks} flipbook${
+          plan.maxFlipbooks !== 1 ? "s" : ""
+        }. Upgrade for more!`
+      );
       return false;
     }
 
     // Check size limit
     if (fileToValidate.size > plan.maxFileSizeBytes) {
-      toast.error(`File too large! Your ${plan.name} plan limit is ${plan.maxFileSizeMB}MB. Upgrade for larger files.`);
+      toast.error(
+        `File too large! Your ${plan.name} plan limit is ${plan.maxFileSizeMB}MB. Upgrade for larger files.`
+      );
       return false;
     }
 
@@ -50,42 +60,40 @@ export function useFileUpload(userRole: UserRole, userId: string | undefined, on
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('title', title);
-      formData.append('fileSize', file.size.toString());
-
-      console.log('Uploading file:', { 
-        name: file.name, 
-        size: file.size, 
-        title,
-        userRole 
-      });
+      formData.append("file", file);
+      formData.append("title", title);
+      formData.append("fileSize", file.size.toString());
 
       // Get the session for auth header
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
-        throw new Error('Not authenticated');
+        throw new Error("Not authenticated");
       }
 
       // Make direct fetch call to get better error messages
-      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-to-r2`;
+      const functionUrl = `${
+        import.meta.env.VITE_SUPABASE_URL
+      }/functions/v1/upload-to-r2`;
       const response = await fetch(functionUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: formData,
       });
 
       const responseData = await response.json();
-      console.log('Upload response:', { status: response.status, data: responseData });
 
       if (!response.ok) {
-        throw new Error(responseData.error || `Upload failed with status ${response.status}`);
+        throw new Error(
+          responseData.error || `Upload failed with status ${response.status}`
+        );
       }
 
       if (!responseData.success) {
-        throw new Error(responseData.error || 'Upload failed');
+        throw new Error(responseData.error || "Upload failed");
       }
 
       toast.success("Flipbook uploaded successfully!");
@@ -94,12 +102,11 @@ export function useFileUpload(userRole: UserRole, userId: string | undefined, on
       onSuccess();
       return true;
     } catch (error) {
-      console.error('Upload error details:', error);
-      
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : "Failed to upload flipbook";
-      
+      console.error("Upload error details:", error);
+
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to upload flipbook";
+
       toast.error(errorMessage);
       return false;
     } finally {
@@ -139,6 +146,6 @@ export function useFileUpload(userRole: UserRole, userId: string | undefined, on
     uploadFlipbook,
     handleDragOver,
     handleDragLeave,
-    handleDrop
+    handleDrop,
   };
 }

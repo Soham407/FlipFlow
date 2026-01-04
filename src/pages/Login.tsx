@@ -4,7 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Loader2, Mail } from "lucide-react";
@@ -23,28 +30,20 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log('Login page useEffect running');
-    
     // Check if this is an OAuth callback by looking for hash in URL
     const hashParams = window.location.hash;
-    if (hashParams) {
-      console.log('OAuth callback detected, hash:', hashParams);
-    }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session ? 'Session exists' : 'No session');
       if (session) {
-        console.log('Redirecting to dashboard');
         navigate("/dashboard");
       }
     });
 
     // Listen for auth state changes (including OAuth callbacks)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
-      
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        console.log('Auth state change - Redirecting to dashboard');
         navigate("/dashboard");
       }
     });
@@ -54,7 +53,7 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate inputs
     const validation = loginSchema.safeParse({ email, password });
     if (!validation.success) {
@@ -75,16 +74,17 @@ const Login = () => {
       toast.success("Successfully logged in!");
       navigate("/dashboard");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to log in";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to log in";
       toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOAuthLogin = async (provider: 'google' | 'github') => {
+  const handleOAuthLogin = async (provider: "google" | "github") => {
     setOauthLoading(provider);
-    
+
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -95,7 +95,10 @@ const Login = () => {
 
       if (error) throw error;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : `Failed to login with ${provider}`;
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : `Failed to login with ${provider}`;
       toast.error(errorMessage);
       setOauthLoading(null);
     }
@@ -107,7 +110,11 @@ const Login = () => {
         {/* Logo */}
         <div className="text-center">
           <Link to="/" className="inline-flex items-center gap-2 mb-2">
-            <img src="/Images/FF Logo.png" alt="FlipFlow" className="h-10 w-10 sm:h-12 sm:w-12" />
+            <img
+              src="/Images/FF Logo.png"
+              alt="FlipFlow"
+              className="h-10 w-10 sm:h-12 sm:w-12"
+            />
             <span className="text-2xl font-bold">FlipFlow</span>
           </Link>
           <p className="text-muted-foreground mt-2">Welcome back to FlipFlow</p>
@@ -115,10 +122,14 @@ const Login = () => {
 
         <Card className="border-2 shadow-lg">
           <CardHeader className="space-y-1 text-center pb-4">
-            <CardTitle className="text-2xl font-bold">Log in to your account</CardTitle>
-            <CardDescription>Choose your preferred login method</CardDescription>
+            <CardTitle className="text-2xl font-bold">
+              Log in to your account
+            </CardTitle>
+            <CardDescription>
+              Choose your preferred login method
+            </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-4">
             {/* OAuth Buttons */}
             <div className="grid grid-cols-2 gap-3">
@@ -126,10 +137,10 @@ const Login = () => {
                 variant="outline"
                 type="button"
                 disabled={oauthLoading !== null}
-                onClick={() => handleOAuthLogin('google')}
+                onClick={() => handleOAuthLogin("google")}
                 className="relative"
               >
-                {oauthLoading === 'google' ? (
+                {oauthLoading === "google" ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
@@ -155,20 +166,24 @@ const Login = () => {
                   </>
                 )}
               </Button>
-              
+
               <Button
                 variant="outline"
                 type="button"
                 disabled={oauthLoading !== null}
-                onClick={() => handleOAuthLogin('github')}
+                onClick={() => handleOAuthLogin("github")}
                 className="relative"
               >
-                {oauthLoading === 'github' ? (
+                {oauthLoading === "github" ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    <svg
+                      className="h-4 w-4 mr-2"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                     </svg>
                     GitHub
                   </>
@@ -181,7 +196,9 @@ const Login = () => {
                 <Separator />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with email</span>
+                <span className="bg-card px-2 text-muted-foreground">
+                  Or continue with email
+                </span>
               </div>
             </div>
 
@@ -202,11 +219,14 @@ const Login = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <Link to="/reset-password" className="text-xs text-primary hover:underline">
+                  <Link
+                    to="/reset-password"
+                    className="text-xs text-primary hover:underline"
+                  >
                     Forgot password?
                   </Link>
                 </div>
@@ -220,7 +240,12 @@ const Login = () => {
                 />
               </div>
 
-              <Button type="submit" className="w-full" size="lg" disabled={loading || oauthLoading !== null}>
+              <Button
+                type="submit"
+                className="w-full"
+                size="lg"
+                disabled={loading || oauthLoading !== null}
+              >
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -232,11 +257,14 @@ const Login = () => {
               </Button>
             </form>
           </CardContent>
-          
+
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-sm text-center text-muted-foreground">
               Don't have an account?{" "}
-              <Link to="/signup" className="text-primary hover:underline font-semibold">
+              <Link
+                to="/signup"
+                className="text-primary hover:underline font-semibold"
+              >
                 Sign up for free
               </Link>
             </div>
@@ -244,7 +272,10 @@ const Login = () => {
         </Card>
 
         <div className="text-center">
-          <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Link
+            to="/"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
             ← Back to home
           </Link>
         </div>

@@ -278,9 +278,19 @@ const Dashboard = () => {
                             handleFileSelect(e.target.files?.[0] || null)
                           }
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          aria-describedby="file-description"
+                          aria-invalid={
+                            !!(file && file.size > 2 * 1024 * 1024 * 10)
+                          } // Example simple check, actual logic is in hook
                         />
-                        <div className="pointer-events-none">
-                          <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+                        <div
+                          className="pointer-events-none"
+                          id="file-description"
+                        >
+                          <Upload
+                            className="h-10 w-10 mx-auto mb-3 text-muted-foreground"
+                            aria-hidden="true"
+                          />
                           {file ? (
                             <div>
                               <p className="font-medium text-foreground">
@@ -317,8 +327,12 @@ const Dashboard = () => {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         required
+                        aria-describedby="title-hint"
                       />
-                      <p className="text-xs text-muted-foreground">
+                      <p
+                        className="text-xs text-muted-foreground"
+                        id="title-hint"
+                      >
                         Auto-filled from PDF name, edit if needed
                       </p>
                     </div>

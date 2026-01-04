@@ -7,56 +7,69 @@ export function useFlipbooks(userId: string | undefined) {
   const [flipbooks, setFlipbooks] = useState<Flipbook[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchFlipbooks = useCallback(async () => {
-    if (!userId) return;
+  const fetchFlipbooks = useCallback(
+    async (isMounted: { current: boolean }) => {
+      if (!userId) return;
 
-    try {
-      const { data, error } = await supabase
-        .from("flipbooks")
-        .select("*")
-        .order("created_at", { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from("flipbooks")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-      if (error) throw error;
+        if (error) throw error;
+        if (!isMounted.current) return;
 
-      // Sort unlocked flipbooks to the top, then by created_at descending
-      const sortedData = ((data as unknown as Flipbook[]) || []).sort(
-        (a, b) => {
-          // 1. Active (Unlocked) first
-          // Treat undefined/null as false (unlocked)
-          const aLocked = !!a.is_locked;
-          const bLocked = !!b.is_locked;
+        // Sort unlocked flipbooks to the top, then by created_at descending
+        const sortedData = ((data as unknown as Flipbook[]) || []).sort(
+          (a, b) => {
+            // 1. Active (Unlocked) first
+            // Treat undefined/null as false (unlocked)
+            const aLocked = !!a.is_locked;
+            const bLocked = !!b.is_locked;
 
-          if (aLocked !== bLocked) {
-            return aLocked ? 1 : -1;
-          }
-
-          // 2. If both locked, prioritize those that CAN be unlocked
-          if (aLocked && bLocked) {
-            const aUnlockable = a.lock_reason !== "size_limit";
-            const bUnlockable = b.lock_reason !== "size_limit";
-            if (aUnlockable !== bUnlockable) {
-              return aUnlockable ? -1 : 1; // Unlockable first
+            if (aLocked !== bLocked) {
+              return aLocked ? 1 : -1;
             }
+
+            // 2. If both locked, prioritize those that CAN be unlocked
+            if (aLocked && bLocked) {
+              const aUnlockable = a.lock_reason !== "size_limit";
+              const bUnlockable = b.lock_reason !== "size_limit";
+              if (aUnlockable !== bUnlockable) {
+                return aUnlockable ? -1 : 1; // Unlockable first
+              }
+            }
+
+            // 3. Sort by created_at descending (newest first)
+            return (
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+            );
           }
+        );
 
-          // 3. Sort by created_at descending (newest first)
-          return (
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
+        setFlipbooks(sortedData);
+      } catch (error) {
+        if (isMounted.current) {
+          console.error("Error fetching flipbooks:", error);
+          toast.error("Failed to load flipbooks");
         }
-      );
-
-      setFlipbooks(sortedData);
-    } catch (error) {
-      console.error("Error fetching flipbooks:", error);
-      toast.error("Failed to load flipbooks");
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+      } finally {
+        if (isMounted.current) {
+          setLoading(false);
+        }
+      }
+    },
+    [userId]
+  );
 
   useEffect(() => {
-    fetchFlipbooks();
+    const isMounted = { current: true };
+    fetchFlipbooks(isMounted);
+    return () => {
+      isMounted.current = false;
+    };
   }, [fetchFlipbooks]);
 
   const deleteFlipbook = async (id: string) => {
@@ -72,7 +85,7 @@ export function useFlipbooks(userId: string | undefined) {
       if (!data?.success) throw new Error(data?.error || "Delete failed");
 
       toast.success("Flipbook deleted successfully!");
-      await fetchFlipbooks(); // Refresh list
+      await fetchFlipbooks({ current: true }); // Refresh list
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to delete flipbook";
