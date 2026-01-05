@@ -48,6 +48,14 @@ export function useFileUpload(
     return true;
   };
 
+  const isMounted = React.useRef(true);
+
+  React.useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const uploadFlipbook = async (currentFlipbookCount: number) => {
     if (!file) {
       toast.error("Please select a file");
@@ -68,6 +76,8 @@ export function useFileUpload(
       const {
         data: { session },
       } = await supabase.auth.getSession();
+
+      if (!isMounted.current) return;
       if (!session) {
         throw new Error("Not authenticated");
       }
@@ -84,6 +94,8 @@ export function useFileUpload(
         body: formData,
       });
 
+      if (!isMounted.current) return;
+
       const responseData = await response.json();
 
       if (!response.ok) {
@@ -97,11 +109,14 @@ export function useFileUpload(
       }
 
       toast.success("Flipbook uploaded successfully!");
-      setFile(null);
-      setTitle("");
+      if (isMounted.current) {
+        setFile(null);
+        setTitle("");
+      }
       onSuccess();
       return true;
     } catch (error) {
+      if (!isMounted.current) return false;
       console.error("Upload error details:", error);
 
       const errorMessage =
@@ -110,7 +125,9 @@ export function useFileUpload(
       toast.error(errorMessage);
       return false;
     } finally {
-      setUploading(false);
+      if (isMounted.current) {
+        setUploading(false);
+      }
     }
   };
 
