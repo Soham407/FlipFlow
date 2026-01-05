@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,7 +18,18 @@ import {
   Lock,
   Unlock,
   FileWarning,
+  Pencil,
+  Loader2,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +48,7 @@ interface FlipbookCardProps {
   onDelete: (id: string) => void;
   onCopyEmbed: (flipbook: Flipbook) => void;
   onUpdate: () => void;
+  onRename: (id: string, newTitle: string) => Promise<any>;
 }
 
 export function FlipbookCard({
@@ -43,8 +56,12 @@ export function FlipbookCard({
   onDelete,
   onCopyEmbed,
   onUpdate,
+  onRename,
 }: FlipbookCardProps) {
   const navigate = useNavigate();
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [newTitle, setNewTitle] = useState(flipbook.title);
+  const [isUpdating, setIsUpdating] = useState(false);
   const identifier = flipbook.slug || flipbook.id;
   const isPermanentlyLocked =
     flipbook.is_locked && flipbook.lock_reason === "size_limit";
@@ -72,6 +89,25 @@ export function FlipbookCard({
       );
     } catch (err) {
       toast.error("Failed to update status");
+    }
+  };
+
+  const handleRename = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim() || newTitle === flipbook.title) {
+      setIsRenaming(false);
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      await onRename(flipbook.id, newTitle.trim());
+      setIsRenaming(false);
+      toast.success("Title updated successfully");
+    } catch (error) {
+      // toast.error is handled in the hook
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -203,6 +239,9 @@ export function FlipbookCard({
                 >
                   <BarChart2 className="mr-2 h-4 w-4" /> View Analytics
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsRenaming(true)}>
+                  <Pencil className="mr-2 h-4 w-4" /> Rename
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onCopyEmbed(flipbook)}>
                   <Copy className="mr-2 h-4 w-4" /> Copy Embed
                 </DropdownMenuItem>
@@ -240,6 +279,44 @@ export function FlipbookCard({
           </Link>
         </Button>
       </CardFooter>
+
+      {/* Rename Dialog */}
+      <Dialog open={isRenaming} onOpenChange={setIsRenaming}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Flipbook</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleRename}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-title">New Title</Label>
+                <Input
+                  id="new-title"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="Enter new title"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setIsRenaming(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isUpdating}>
+                {isUpdating && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

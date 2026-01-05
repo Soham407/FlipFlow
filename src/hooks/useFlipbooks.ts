@@ -95,10 +95,31 @@ export function useFlipbooks(userId: string | undefined) {
     }
   };
 
+  const updateFlipbook = async (id: string, updates: Partial<Flipbook>) => {
+    try {
+      const { error } = await supabase
+        .from("flipbooks")
+        .update(updates)
+        .eq("id", id);
+
+      if (error) throw error;
+
+      await fetchFlipbooks({ current: true });
+      return { success: true };
+    } catch (error) {
+      console.error("Update error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update flipbook";
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  };
+
   return {
     flipbooks,
     loading,
     refetch: fetchFlipbooks,
     deleteFlipbook,
+    updateFlipbook,
   };
 }

@@ -55,6 +55,7 @@ const Dashboard = () => {
     flipbooks,
     loading: loadingFlipbooks,
     deleteFlipbook,
+    updateFlipbook,
     refetch: refetchFlipbooks,
   } = useFlipbooks(user?.id);
 
@@ -366,6 +367,7 @@ const Dashboard = () => {
                   onDelete={(id) => deleteFlipbook(id)}
                   onCopyEmbed={handleCopyEmbed}
                   onUpdate={refetchFlipbooks}
+                  onRename={(id, title) => updateFlipbook(id, { title })}
                 />
               ))}
             </div>
