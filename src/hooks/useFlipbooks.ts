@@ -15,6 +15,7 @@ export function useFlipbooks(userId: string | undefined) {
         const { data, error } = await supabase
           .from("flipbooks")
           .select("*")
+          .eq("user_id", userId)
           .order("created_at", { ascending: false });
 
         if (error) throw error;
