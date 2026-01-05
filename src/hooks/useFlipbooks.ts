@@ -8,7 +8,7 @@ export function useFlipbooks(userId: string | undefined) {
   const [loading, setLoading] = useState(true);
 
   const fetchFlipbooks = useCallback(
-    async (isMounted: { current: boolean }) => {
+    async (isMounted: { current: boolean } = { current: true }) => {
       if (!userId) return;
 
       try {

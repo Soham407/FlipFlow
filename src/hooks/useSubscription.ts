@@ -10,39 +10,70 @@ export function useSubscription(userId: string | undefined) {
   const [processingPayment, setProcessingPayment] = useState(false);
 
   useEffect(() => {
-    if (userId) {
-      fetchUserRole();
-      fetchProfile();
-    }
+    let isMounted = true;
+
+    const init = async () => {
+      if (userId) {
+        await Promise.all([fetchUserRole(isMounted), fetchProfile(isMounted)]);
+      }
+    };
+
+    init();
+
+    return () => {
+      isMounted = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (isMounted: boolean) => {
     if (!userId) return;
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
 
-    if (data) setProfile(data as unknown as Profile);
+      if (error && error.code !== "PGRST116") {
+        // Ignore no rows found
+        console.error("Error fetching profile:", error);
+      }
+
+      if (isMounted && data) {
+        setProfile(data as unknown as Profile);
+      }
+    } catch (error) {
+      console.error("Profile fetch error:", error);
+    }
   };
 
-  const fetchUserRole = async () => {
+  const fetchUserRole = async (isMounted: boolean) => {
     if (!userId) return;
 
-    // Check user_roles table
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
+    try {
+      // Check user_roles table
+      const { data: roleData, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-    if (roleData) {
-      setUserRole(roleData.role as UserRole);
-    } else {
-      // Default to free if no record
-      setUserRole("free");
+      if (error) {
+        console.error("Error fetching user role:", error);
+      }
+
+      if (isMounted) {
+        if (roleData) {
+          setUserRole(roleData.role as UserRole);
+        } else {
+          // Default to free if no record
+          setUserRole("free");
+        }
+      }
+    } catch (error) {
+      console.error("Role fetch error:", error);
+      if (isMounted) setUserRole("free");
     }
   };
 
