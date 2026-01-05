@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Share2, RectangleHorizontal, Fullscreen } from "lucide-react";
 import { toast } from "sonner";
 import {
