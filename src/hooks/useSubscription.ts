@@ -57,7 +57,25 @@ export function useSubscription(userId: string | undefined) {
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
-        .maybeSingle();
+        .order("role", { ascending: true }) // We need to handle this with a manual sort or proper DB priority if we can't assume order
+        .then((res) => {
+          if (res.data && res.data.length > 0) {
+            // Priority: pro > business > hobby > starter > free
+            const priorityMap: Record<string, number> = {
+              pro: 1,
+              business: 2,
+              hobby: 3,
+              starter: 4,
+              free: 5,
+            };
+            const sorted = res.data.sort(
+              (a, b) =>
+                (priorityMap[a.role] || 99) - (priorityMap[b.role] || 99)
+            );
+            return { data: sorted[0], error: res.error };
+          }
+          return res;
+        });
 
       if (error) {
         console.error("Error fetching user role:", error);

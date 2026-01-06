@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Loader2, Upload, Plus, Crown, LogOut, User } from "lucide-react";
+import {
+  Loader2,
+  Upload,
+  Plus,
+  Crown,
+  LogOut,
+  User,
+  Search,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -30,8 +38,10 @@ import { FlipbookCard } from "@/components/dashboard/FlipbookCard";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { PricingModal } from "@/components/dashboard/PricingModal";
+import { SearchBar } from "@/components/dashboard/SearchBar";
 import { toast } from "sonner";
 import { ModeToggle } from "@/components/mode-toggle";
+import { WelcomeModal } from "@/components/dashboard/WelcomeModal";
 
 // Hooks & Types
 import { useFlipbooks } from "@/hooks/useFlipbooks";
@@ -40,6 +50,7 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/hooks/useAuth";
 import { PLANS } from "@/config/constants";
+import { celebrateFirstUpload } from "@/lib/confetti";
 import type { Flipbook } from "@/types";
 
 const Dashboard = () => {
@@ -48,6 +59,20 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem("flipflow_welcome_seen");
+    if (!hasSeenWelcome) {
+      setShowWelcome(true);
+    }
+  }, []);
+
+  const handleCloseWelcome = () => {
+    setShowWelcome(false);
+    localStorage.setItem("flipflow_welcome_seen", "true");
+  };
 
   // 2. Custom Hooks (Business Logic)
 
@@ -58,6 +83,10 @@ const Dashboard = () => {
     updateFlipbook,
     refetch: refetchFlipbooks,
   } = useFlipbooks(user?.id);
+
+  const filteredFlipbooks = flipbooks.filter((f) =>
+    f.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const { userRole, profile, processingPayment, subscribeToPlan } =
     useSubscription(user?.id);
@@ -76,6 +105,16 @@ const Dashboard = () => {
     handleDrop,
   } = useFileUpload(userRole, user?.id, () => {
     setIsModalOpen(false); // Close modal on success
+
+    // Feature 1.1: Celebrate first upload
+    const hasCelebrated = localStorage.getItem(
+      "flipflow_first_upload_celebrated"
+    );
+    if (flipbooks.length === 0 && !hasCelebrated) {
+      celebrateFirstUpload();
+      localStorage.setItem("flipflow_first_upload_celebrated", "true");
+    }
+
     refetchFlipbooks(); // Refresh list
   });
 
@@ -83,8 +122,9 @@ const Dashboard = () => {
 
   const handleUploadClick = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Pass current count to validator
-    await uploadFlipbook(flipbooks.length);
+    // Pass current ACTIVE (unlocked) count to validator
+    const activeCount = flipbooks.filter((f) => !f.is_locked).length;
+    await uploadFlipbook(activeCount);
   };
 
   const handleCopyEmbed = async (flipbook: Flipbook) => {
@@ -95,7 +135,14 @@ const Dashboard = () => {
       const iframe = `<iframe src="${url}" style="width:100%;height:600px;border:0;" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
 
       await navigator.clipboard.writeText(iframe);
-      toast.success("Embed code copied to clipboard!");
+      toast.success(
+        <div className="flex flex-col gap-1">
+          <span className="font-medium">Embed code copied!</span>
+          <code className="text-[10px] bg-muted px-2 py-0.5 rounded truncate max-w-[200px] opacity-70">
+            {url}
+          </code>
+        </div>
+      );
     } catch (error) {
       toast.error("Failed to copy embed code");
     }
@@ -212,56 +259,66 @@ const Dashboard = () => {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        <StatsCards flipbooksCount={flipbooks.length} userRole={userRole} />
+        <StatsCards
+          totalCount={flipbooks.length}
+          activeCount={flipbooks.filter((f) => !f.is_locked).length}
+          userRole={userRole}
+        />
 
         {/* Main Content */}
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-bold">Your Flipbooks</h2>
-              <p className="text-muted-foreground mt-1">
-                {flipbooks.length === 0
-                  ? "Create your first flipbook to get started"
-                  : `Managing ${flipbooks.length} flipbook${
-                      flipbooks.length !== 1 ? "s" : ""
-                    }`}
+              <p className="text-muted-foreground text-sm">
+                Manage and share your interactive publications
               </p>
             </div>
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-              <DialogTrigger asChild>
-                <Button size="lg" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Create New Flipbook</span>
-                  <span className="sm:hidden">New</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Upload New Flipbook</DialogTitle>
-                  <DialogDescription>
-                    Upload a PDF file to create a new flipbook.
-                    {(() => {
-                      const planKey =
-                        userRole.toUpperCase() as keyof typeof PLANS;
-                      const plan = PLANS[planKey] || PLANS.FREE;
-                      const remaining = plan.maxFlipbooks - flipbooks.length;
-                      return plan.maxFlipbooks !== Infinity && remaining > 0
-                        ? ` (${remaining} upload${
-                            remaining !== 1 ? "s" : ""
-                          } remaining)`
-                        : "";
-                    })()}
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleUploadClick}>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="file">PDF File</Label>
-                      <div
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={handleDrop}
-                        className={`
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+              {flipbooks.length > 0 && (
+                <SearchBar value={searchQuery} onChange={setSearchQuery} />
+              )}
+              <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogTrigger asChild>
+                  <Button size="lg" className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    <span className="hidden sm:inline">
+                      Create New Flipbook
+                    </span>
+                    <span className="sm:hidden">New</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Upload New Flipbook</DialogTitle>
+                    <DialogDescription>
+                      Upload a PDF file to create a new flipbook.
+                      {(() => {
+                        const planKey =
+                          userRole.toUpperCase() as keyof typeof PLANS;
+                        const plan = PLANS[planKey] || PLANS.FREE;
+                        const activeCount = flipbooks.filter(
+                          (f) => !f.is_locked
+                        ).length;
+                        const remaining = plan.maxFlipbooks - activeCount;
+                        return plan.maxFlipbooks !== Infinity && remaining > 0
+                          ? ` (${remaining} upload${
+                              remaining !== 1 ? "s" : ""
+                            } remaining)`
+                          : "";
+                      })()}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleUploadClick}>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="file">PDF File</Label>
+                        <div
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={handleDrop}
+                          className={`
                           relative border-2 border-dashed rounded-lg p-8 text-center transition-colors
                           ${
                             isDragging
@@ -270,97 +327,115 @@ const Dashboard = () => {
                           }
                           ${file ? "bg-muted/50" : ""}
                         `}
-                      >
-                        <Input
-                          id="file"
-                          type="file"
-                          accept=".pdf"
-                          onChange={(e) =>
-                            handleFileSelect(e.target.files?.[0] || null)
-                          }
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                          aria-describedby="file-description"
-                          aria-invalid={
-                            !!(file && file.size > 2 * 1024 * 1024 * 10)
-                          } // Example simple check, actual logic is in hook
-                        />
-                        <div
-                          className="pointer-events-none"
-                          id="file-description"
                         >
-                          <Upload
-                            className="h-10 w-10 mx-auto mb-3 text-muted-foreground"
-                            aria-hidden="true"
+                          <Input
+                            id="file"
+                            type="file"
+                            accept=".pdf"
+                            onChange={(e) =>
+                              handleFileSelect(e.target.files?.[0] || null)
+                            }
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            aria-describedby="file-description"
+                            aria-invalid={
+                              !!(file && file.size > 2 * 1024 * 1024 * 10)
+                            } // Example simple check, actual logic is in hook
                           />
-                          {file ? (
-                            <div>
-                              <p className="font-medium text-foreground">
-                                {file.name}
-                              </p>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {(file.size / 1024 / 1024).toFixed(2)} MB
-                              </p>
-                            </div>
-                          ) : (
-                            <div>
-                              <p className="font-medium text-foreground">
-                                Drop your PDF here or click to browse
-                              </p>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Maximum file size:{" "}
-                                {(() => {
-                                  const planKey =
-                                    userRole.toUpperCase() as keyof typeof PLANS;
-                                  const plan = PLANS[planKey] || PLANS.FREE;
-                                  return `${plan.maxFileSizeMB}MB`;
-                                })()}
-                              </p>
-                            </div>
-                          )}
+                          <div
+                            className="pointer-events-none"
+                            id="file-description"
+                          >
+                            <Upload
+                              className="h-10 w-10 mx-auto mb-3 text-muted-foreground"
+                              aria-hidden="true"
+                            />
+                            {file ? (
+                              <div>
+                                <p className="font-medium text-foreground">
+                                  {file.name}
+                                </p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {(file.size / 1024 / 1024).toFixed(2)} MB
+                                </p>
+                              </div>
+                            ) : (
+                              <div>
+                                <p className="font-medium text-foreground">
+                                  Drop your PDF here or click to browse
+                                </p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Maximum file size:{" "}
+                                  {(() => {
+                                    const planKey =
+                                      userRole.toUpperCase() as keyof typeof PLANS;
+                                    const plan = PLANS[planKey] || PLANS.FREE;
+                                    return `${plan.maxFileSizeMB}MB`;
+                                  })()}
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="title">Title</Label>
+                        <Input
+                          id="title"
+                          placeholder="My Awesome Flipbook"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          required
+                          aria-describedby="title-hint"
+                        />
+                        <p
+                          className="text-xs text-muted-foreground"
+                          id="title-hint"
+                        >
+                          Auto-filled from PDF name, edit if needed
+                        </p>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Title</Label>
-                      <Input
-                        id="title"
-                        placeholder="My Awesome Flipbook"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        required
-                        aria-describedby="title-hint"
-                      />
-                      <p
-                        className="text-xs text-muted-foreground"
-                        id="title-hint"
+                    <DialogFooter className="mt-6">
+                      <Button
+                        type="submit"
+                        disabled={uploading}
+                        className="w-full"
                       >
-                        Auto-filled from PDF name, edit if needed
-                      </p>
-                    </div>
-                  </div>
-                  <DialogFooter className="mt-6">
-                    <Button
-                      type="submit"
-                      disabled={uploading}
-                      className="w-full"
-                    >
-                      {uploading && (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      )}
-                      <Upload className="mr-2 h-4 w-4" />
-                      {uploading ? "Uploading..." : "Upload Flipbook"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+                        {uploading && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        <Upload className="mr-2 h-4 w-4" />
+                        {uploading ? "Uploading..." : "Upload Flipbook"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
 
           {flipbooks.length === 0 ? (
             <EmptyState onCreateClick={() => setIsModalOpen(true)} />
+          ) : filteredFlipbooks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in zoom-in-95 duration-300">
+              <div className="bg-muted p-4 rounded-full mb-4">
+                <Search className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold">No results found</h3>
+              <p className="text-muted-foreground max-w-xs mx-auto">
+                We couldn't find any flipbooks matching "{searchQuery}"
+              </p>
+              <Button
+                variant="link"
+                onClick={() => setSearchQuery("")}
+                className="mt-2 text-primary"
+              >
+                Clear search
+              </Button>
+            </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {flipbooks.map((flipbook) => (
+              {filteredFlipbooks.map((flipbook) => (
                 <FlipbookCard
                   key={flipbook.id}
                   flipbook={flipbook}
@@ -368,6 +443,7 @@ const Dashboard = () => {
                   onCopyEmbed={handleCopyEmbed}
                   onUpdate={refetchFlipbooks}
                   onRename={(id, title) => updateFlipbook(id, { title })}
+                  onUpgrade={() => setIsPricingModalOpen(true)}
                 />
               ))}
             </div>
@@ -383,6 +459,8 @@ const Dashboard = () => {
         processingPayment={processingPayment}
         currentPlan={userRole}
       />
+
+      <WelcomeModal open={showWelcome} onClose={handleCloseWelcome} />
     </div>
   );
 };

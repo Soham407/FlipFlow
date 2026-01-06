@@ -220,6 +220,19 @@ export const DflipViewer = ({
     };
   }, []);
 
+  const [showHint, setShowHint] = useState(false);
+
+  useEffect(() => {
+    if (isReady && !localStorage.getItem("flipflow_view_hint_shown")) {
+      setShowHint(true);
+    }
+  }, [isReady]);
+
+  const dismissHint = () => {
+    setShowHint(false);
+    localStorage.setItem("flipflow_view_hint_shown", "true");
+  };
+
   if (scriptError) {
     return (
       <Alert variant="destructive" className="m-4">
@@ -260,6 +273,28 @@ export const DflipViewer = ({
         className="w-full h-full"
         style={{ visibility: !scriptsReady || !isReady ? "hidden" : "visible" }}
       />
+
+      {showHint && (
+        <div
+          className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-500 cursor-pointer"
+          onClick={dismissHint}
+        >
+          <div className="text-center text-white p-6 max-w-sm">
+            <div className="flex justify-center items-center gap-8 text-6xl mb-6">
+              <span className="animate-bounce [animation-delay:-0.3s]">👈</span>
+              <span className="text-4xl opacity-50">📖</span>
+              <span className="animate-bounce">👉</span>
+            </div>
+            <h3 className="text-xl font-bold mb-2">
+              {isMobile ? "Swipe to turn pages" : "Click edges to turn pages"}
+            </h3>
+            <p className="text-sm opacity-80">Tap anywhere to start reading</p>
+            <div className="mt-8 px-4 py-2 border border-white/30 rounded-full text-xs font-medium bg-white/10">
+              Got it
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

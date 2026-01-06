@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { BookOpen, HardDrive, Zap } from "lucide-react";
@@ -5,11 +6,17 @@ import { PLANS } from "@/config/constants";
 import type { UserRole } from "@/types";
 
 interface StatsCardsProps {
-  flipbooksCount: number;
+  totalCount: number;
+  activeCount: number;
   userRole: UserRole;
 }
 
-export function StatsCards({ flipbooksCount, userRole }: StatsCardsProps) {
+export function StatsCards({
+  totalCount,
+  activeCount,
+  userRole,
+}: StatsCardsProps) {
+  const [animatedPercent, setAnimatedPercent] = useState(0);
   const planKey = userRole.toUpperCase() as keyof typeof PLANS;
   const plan = PLANS[planKey] || PLANS.FREE;
 
@@ -17,7 +24,15 @@ export function StatsCards({ flipbooksCount, userRole }: StatsCardsProps) {
   const usagePercent =
     plan.maxFlipbooks === Infinity
       ? 0 // Unlimited has no limit visually
-      : Math.min((flipbooksCount / plan.maxFlipbooks) * 100, 100);
+      : Math.min((activeCount / plan.maxFlipbooks) * 100, 100);
+
+  useEffect(() => {
+    // Small delay to trigger animation after mount
+    const timer = setTimeout(() => {
+      setAnimatedPercent(usagePercent);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [usagePercent]);
 
   return (
     <div className="grid gap-4 md:grid-cols-3 mb-8">
@@ -27,13 +42,11 @@ export function StatsCards({ flipbooksCount, userRole }: StatsCardsProps) {
           <BookOpen className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{flipbooksCount}</div>
+          <div className="text-2xl font-bold">{totalCount}</div>
           <p className="text-xs text-muted-foreground">
             {plan.maxFlipbooks === Infinity
               ? "Unlimited uploads active"
-              : `${plan.maxFlipbooks - flipbooksCount} remaining on ${
-                  plan.name
-                } plan`}
+              : `${plan.maxFlipbooks - activeCount} active slots remaining`}
           </p>
         </CardContent>
       </Card>
@@ -74,12 +87,12 @@ export function StatsCards({ flipbooksCount, userRole }: StatsCardsProps) {
           ) : (
             <div className="space-y-2">
               <div className="text-2xl font-bold">
-                {usagePercent.toFixed(0)}%
+                {animatedPercent.toFixed(0)}%
               </div>
               <Progress
-                value={usagePercent}
-                className="h-2"
-                aria-label={`${usagePercent.toFixed(
+                value={animatedPercent}
+                className="h-2 transition-all duration-1000 ease-out"
+                aria-label={`${animatedPercent.toFixed(
                   0
                 )}% of flipbook limit used`}
               />

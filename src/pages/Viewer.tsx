@@ -4,7 +4,15 @@ import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Share2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Share2,
+  Twitter,
+  Linkedin,
+  Mail,
+  MessageCircle,
+  Copy,
+} from "lucide-react";
 import { toast } from "sonner";
 import { trackFlipbookView, trackTimeSpent } from "@/lib/analytics";
 import { getR2PublicUrl } from "@/lib/r2";
@@ -13,6 +21,12 @@ import MobileViewerToolbar from "../components/MobileViewerToolbar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DflipViewer } from "@/components/DflipViewer";
 import type { Flipbook } from "@/types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // jQuery type definitions for dflip.js
 interface JQueryElement {
@@ -363,19 +377,69 @@ const Viewer = () => {
               {flipbook.title}
             </h1>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={async () => {
-              await navigator.clipboard.writeText(
-                `${window.location.origin}/view/${flipbook.slug || flipbook.id}`
-              );
-              toast.success("Link copied!");
-            }}
-          >
-            <Share2 className="h-4 w-4 mr-2" />
-            Share
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                onClick={async () => {
+                  const url = window.location.href;
+                  await navigator.clipboard.writeText(url);
+                  toast.success("Link copied!");
+                }}
+              >
+                <Copy className="h-4 w-4 mr-2" /> Copy Link
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                    `Check out this flipbook: ${flipbook.title}`
+                  )}&url=${encodeURIComponent(window.location.href)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Twitter className="h-4 w-4 mr-2" /> Twitter (X)
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(
+                    `${flipbook.title} - ${window.location.href}`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" /> WhatsApp
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a
+                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+                    window.location.href
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Linkedin className="h-4 w-4 mr-2" /> LinkedIn
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a
+                  href={`mailto:?subject=${encodeURIComponent(
+                    flipbook.title
+                  )}&body=${encodeURIComponent(
+                    `Check out this interactive flipbook: ${window.location.href}`
+                  )}`}
+                >
+                  <Mail className="h-4 w-4 mr-2" /> Email
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </header>
       )}
 

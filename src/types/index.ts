@@ -13,6 +13,7 @@ export interface Flipbook {
   is_public?: boolean;
   is_locked?: boolean;
   lock_reason?: string | null;
+  view_count?: number;
 }
 
 export interface Profile {
@@ -45,6 +46,7 @@ export interface DflipInstance {
     setPageMode?: (single: boolean) => void;
   };
   currentPage?: number;
+  _activePage?: number;
   totalPages?: number;
   pageNumber?: number;
   pageCount?: number;

@@ -40,7 +40,13 @@ export function useFileUpload(
     // Check size limit
     if (fileToValidate.size > plan.maxFileSizeBytes) {
       toast.error(
-        `File too large! Your ${plan.name} plan limit is ${plan.maxFileSizeMB}MB. Upgrade for larger files.`
+        <div className="flex flex-col gap-1 text-left">
+          <span className="font-bold">File too large!</span>
+          <span className="text-xs opacity-90">
+            Your {(fileToValidate.size / (1024 * 1024)).toFixed(1)}MB file
+            exceeds the {plan.maxFileSizeMB}MB limit for {plan.name} plan.
+          </span>
+        </div>
       );
       return false;
     }
@@ -119,10 +125,24 @@ export function useFileUpload(
       if (!isMounted.current) return false;
       console.error("Upload error details:", error);
 
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to upload flipbook";
+      let errorMessage = "Failed to upload flipbook";
+      if (error instanceof Error) {
+        if (
+          error.message.includes("413") ||
+          error.message.toLowerCase().includes("too large")
+        ) {
+          errorMessage = `File exceeds server limit. Please try a smaller PDF.`;
+        } else {
+          errorMessage = error.message;
+        }
+      }
 
-      toast.error(errorMessage);
+      toast.error(
+        <div className="flex flex-col gap-1 text-left">
+          <span className="font-bold">Error</span>
+          <span className="text-xs opacity-90">{errorMessage}</span>
+        </div>
+      );
       return false;
     } finally {
       if (isMounted.current) {
