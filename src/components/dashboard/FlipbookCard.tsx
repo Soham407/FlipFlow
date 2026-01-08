@@ -41,7 +41,7 @@ import type { Flipbook } from "@/types";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { usePdfThumbnail } from "@/hooks/usePdfThumbnail";
 import { Badge } from "@/components/ui/badge";
 import { QRCodeModal } from "./QRCodeModal";

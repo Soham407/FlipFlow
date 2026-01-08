@@ -1,11 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, User, Mail, Upload } from "lucide-react";
@@ -28,7 +34,9 @@ const Profile = () => {
       setSession(session);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
 
@@ -54,13 +62,16 @@ const Profile = () => {
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') {
+        if (error.code === "PGRST116") {
           // Profile doesn't exist, create one
           const { data: newProfile, error: insertError } = await supabase
             .from("profiles")
             .insert({
               user_id: session.user.id,
-              full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || null,
+              full_name:
+                session.user.user_metadata?.full_name ||
+                session.user.user_metadata?.name ||
+                null,
               avatar_url: session.user.user_metadata?.avatar_url || null,
             })
             .select()
@@ -108,7 +119,8 @@ const Profile = () => {
       toast.success("Profile updated successfully!");
       fetchProfile();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to update profile";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update profile";
       toast.error(errorMessage);
     } finally {
       setUpdating(false);
@@ -117,7 +129,12 @@ const Profile = () => {
 
   const getInitials = (name: string | null, email: string) => {
     if (name) {
-      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
     }
     return email.slice(0, 2).toUpperCase();
   };
@@ -137,7 +154,11 @@ const Profile = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <img src="/Images/FF Logo.png" alt="FlipFlow" className="h-10 w-10 sm:h-12 sm:w-12" />
+              <img
+                src="/Images/FF Logo.png"
+                alt="FlipFlow"
+                className="h-10 w-10 sm:h-12 sm:w-12"
+              />
               <h1 className="text-xl font-bold">FlipFlow</h1>
             </div>
             <Button asChild variant="ghost" size="sm">
@@ -153,22 +174,33 @@ const Profile = () => {
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="mb-8">
           <h2 className="text-3xl font-bold mb-2">Profile Settings</h2>
-          <p className="text-muted-foreground">Manage your account information</p>
+          <p className="text-muted-foreground">
+            Manage your account information
+          </p>
         </div>
 
         <Card className="border-2">
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
-            <CardDescription>Update your profile details and avatar</CardDescription>
+            <CardDescription>
+              Update your profile details and avatar
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleUpdateProfile} className="space-y-6">
               {/* Avatar Section */}
               <div className="flex items-center gap-6">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src={avatarUrl || undefined} alt={fullName || "User"} />
+                  <AvatarImage
+                    src={avatarUrl || undefined}
+                    alt={fullName || "User"}
+                  />
                   <AvatarFallback className="text-2xl">
-                    {session?.user?.email ? getInitials(fullName, session.user.email) : <User />}
+                    {session?.user?.email ? (
+                      getInitials(fullName, session.user.email)
+                    ) : (
+                      <User />
+                    )}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 space-y-2">
@@ -237,7 +269,12 @@ const Profile = () => {
               </div>
 
               {/* Submit Button */}
-              <Button type="submit" size="lg" disabled={updating} className="w-full">
+              <Button
+                type="submit"
+                size="lg"
+                disabled={updating}
+                className="w-full"
+              >
                 {updating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -259,19 +296,29 @@ const Profile = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm font-medium text-muted-foreground">Account Created</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                Account Created
+              </span>
               <span className="text-sm font-semibold">
-                {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}
+                {profile?.created_at
+                  ? new Date(profile.created_at).toLocaleDateString()
+                  : "N/A"}
               </span>
             </div>
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm font-medium text-muted-foreground">Last Updated</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                Last Updated
+              </span>
               <span className="text-sm font-semibold">
-                {profile?.updated_at ? new Date(profile.updated_at).toLocaleDateString() : 'N/A'}
+                {profile?.updated_at
+                  ? new Date(profile.updated_at).toLocaleDateString()
+                  : "N/A"}
               </span>
             </div>
             <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-muted-foreground">User ID</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                User ID
+              </span>
               <span className="text-xs font-mono text-muted-foreground">
                 {session?.user?.id.slice(0, 8)}...
               </span>

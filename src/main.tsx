@@ -1,9 +1,9 @@
 import { createRoot } from "react-dom/client";
 import { HelmetProvider } from "react-helmet-async";
 import App from "./App.tsx";
-import "./index.css";
+import "./styles/index.css";
 
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 
 createRoot(document.getElementById("root")!).render(
   <HelmetProvider>

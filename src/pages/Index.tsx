@@ -12,7 +12,7 @@ import {
   CheckCircle,
   Crown,
 } from "lucide-react";
-import Footer from "@/components/Footer";
+import Footer from "@/components/layout/Footer";
 import { PLANS } from "@/config/constants";
 
 const Index = () => {

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -16,10 +16,10 @@ import {
 import { toast } from "sonner";
 import { trackFlipbookView, trackTimeSpent } from "@/lib/analytics";
 import { getR2PublicUrl } from "@/lib/r2";
-import ViewerToolbar from "../components/ViewerToolbar";
-import MobileViewerToolbar from "../components/MobileViewerToolbar";
+import ViewerToolbar from "../components/viewer/ViewerToolbar";
+import MobileViewerToolbar from "../components/viewer/MobileViewerToolbar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { DflipViewer } from "@/components/DflipViewer";
+import { DflipViewer } from "@/components/viewer/DflipViewer";
 import type { Flipbook } from "@/types";
 import {
   DropdownMenu,
