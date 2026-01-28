@@ -7,13 +7,15 @@ export interface Flipbook {
   id: string;
   user_id?: string;
   title: string;
-  file_path: string;
+  pdf_storage_path: string;
   created_at: string;
   slug?: string;
   is_public?: boolean;
   is_locked?: boolean;
   lock_reason?: string | null;
   view_count?: number;
+  file_size?: number;
+  status?: string;
 }
 
 export interface Profile {

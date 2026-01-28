@@ -78,7 +78,7 @@ export function FlipbookCard({
 
   // Generate thumbnail from PDF first page
   const { thumbnailUrl, loading: thumbLoading } = usePdfThumbnail(
-    flipbook.file_path,
+    flipbook.pdf_storage_path,
     !flipbook.is_locked // Only generate thumbnails for unlocked flipbooks
   );
 

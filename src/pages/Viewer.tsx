@@ -80,9 +80,9 @@ const Viewer = () => {
   }, [id]);
 
   useEffect(() => {
-    if (flipbook?.file_path) {
+    if (flipbook?.pdf_storage_path) {
       try {
-        setPublicUrl(getR2PublicUrl(flipbook.file_path));
+        setPublicUrl(getR2PublicUrl(flipbook.pdf_storage_path));
       } catch (error) {
         toast.error("Failed to load PDF");
       }

@@ -40,7 +40,7 @@ import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { PricingModal } from "@/components/dashboard/PricingModal";
 import { SearchBar } from "@/components/dashboard/SearchBar";
 import { toast } from "sonner";
-import { ModeToggle } from "@/components/mode-toggle";
+import { ModeToggle } from "@/components/theme/mode-toggle";
 import { WelcomeModal } from "@/components/dashboard/WelcomeModal";
 
 // Hooks & Types
@@ -85,7 +85,7 @@ const Dashboard = () => {
   } = useFlipbooks(user?.id);
 
   const filteredFlipbooks = flipbooks.filter((f) =>
-    f.title.toLowerCase().includes(searchQuery.toLowerCase())
+    f.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const { userRole, profile, processingPayment, subscribeToPlan } =
@@ -108,7 +108,7 @@ const Dashboard = () => {
 
     // Feature 1.1: Celebrate first upload
     const hasCelebrated = localStorage.getItem(
-      "flipflow_first_upload_celebrated"
+      "flipflow_first_upload_celebrated",
     );
     if (flipbooks.length === 0 && !hasCelebrated) {
       celebrateFirstUpload();
@@ -141,7 +141,7 @@ const Dashboard = () => {
           <code className="text-[10px] bg-muted px-2 py-0.5 rounded truncate max-w-[200px] opacity-70">
             {url}
           </code>
-        </div>
+        </div>,
       );
     } catch (error) {
       toast.error("Failed to copy embed code");
@@ -299,7 +299,7 @@ const Dashboard = () => {
                           userRole.toUpperCase() as keyof typeof PLANS;
                         const plan = PLANS[planKey] || PLANS.FREE;
                         const activeCount = flipbooks.filter(
-                          (f) => !f.is_locked
+                          (f) => !f.is_locked,
                         ).length;
                         const remaining = plan.maxFlipbooks - activeCount;
                         return plan.maxFlipbooks !== Infinity && remaining > 0
